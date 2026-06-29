@@ -4,11 +4,13 @@ import com.ltfullstack.bookservice.command.command.CreateCommandBook;
 import com.ltfullstack.bookservice.command.command.DeleteCommandBook;
 import com.ltfullstack.bookservice.command.command.UpdateCommandBook;
 import com.ltfullstack.bookservice.command.model.BookRequestModel;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.experimental.Delegate;
 import lombok.experimental.FieldDefaults;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -21,13 +23,13 @@ public class BooKCommandController {
     CommandGateway commandGateway;
 
     @PostMapping
-    public String addBook(@RequestBody BookRequestModel model){
+    public String addBook(@Valid @RequestBody BookRequestModel model){
         CreateCommandBook command = new CreateCommandBook(UUID.randomUUID().toString(),model.getName(),model.getAuthor(),true);
         return commandGateway.sendAndWait(command);
     }
 
     @PutMapping({"/{bookId}"})
-    public String updateBook(@RequestBody BookRequestModel model , @PathVariable String bookId){
+    public String updateBook( @RequestBody BookRequestModel model , @PathVariable String bookId){
         UpdateCommandBook updateCommonandBook = new UpdateCommandBook(bookId,model.getName(),model.getAuthor(),model.getIsReady());
         return commandGateway.sendAndWait(updateCommonandBook);
     }
