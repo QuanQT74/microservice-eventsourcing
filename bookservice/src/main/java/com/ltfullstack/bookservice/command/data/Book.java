@@ -20,6 +20,6 @@ public class Book {
 
     private  String author;
 
-    private   String isReady;
+    private   Boolean isReady;
 
 }
