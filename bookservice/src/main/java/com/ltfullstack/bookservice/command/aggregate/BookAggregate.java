@@ -31,7 +31,7 @@ public class BookAggregate {
     Boolean isReady;
 
     @CommandHandler
-    public  BookAggregate(CreateCommandBook command){
+    public BookAggregate(CreateCommandBook command){
         BookCreatedEvent bookCreatedEvent = new BookCreatedEvent();
         BeanUtils.copyProperties(command,bookCreatedEvent);
 

@@ -31,10 +31,8 @@ public class BookEventHandle {
             bookRepository.save(book);
         });
     }
-
     @EventHandler
     public void on(BookDeleteEvent event){
         bookRepository.deleteById(event.getId());
-
     }
 }
