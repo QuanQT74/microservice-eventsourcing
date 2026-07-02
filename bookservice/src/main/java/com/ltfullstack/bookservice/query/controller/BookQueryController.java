@@ -7,6 +7,7 @@ import lombok.Getter;
 import org.axonframework.messaging.responsetypes.ResponseType;
 import org.axonframework.messaging.responsetypes.ResponseTypes;
 import org.axonframework.queryhandling.QueryGateway;
+import org.hibernate.annotations.OptimisticLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,7 @@ import java.util.List;
 public class BookQueryController {
     @Autowired
     private QueryGateway queryGateway;
+
 
     @GetMapping
     public List<BookResponseModel> getAllBooks(){
