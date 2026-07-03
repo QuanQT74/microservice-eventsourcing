@@ -9,7 +9,7 @@ import org.axonframework.eventhandling.EventHandler;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.util.BeanUtil;
+
 
 import java.util.Optional;
 @Slf4j
