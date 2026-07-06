@@ -3,28 +3,31 @@ package com.ltfullstack.bookservice.query.controller;
 import com.ltfullstack.bookservice.query.model.BookResponseModel;
 import com.ltfullstack.bookservice.query.queris.GetAllBookQuery;
 import com.ltfullstack.bookservice.query.queris.GetBookDetailQuery;
+import com.ltfullstack.commonservice.service.KafkaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.axonframework.messaging.responsetypes.ResponseType;
 import org.axonframework.messaging.responsetypes.ResponseTypes;
 import org.axonframework.queryhandling.QueryGateway;
 import org.hibernate.annotations.OptimisticLock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/books")
 @Tag(name = "Book Query")
 public class BookQueryController {
     @Autowired
     private QueryGateway queryGateway;
+
+    @Autowired
+    private KafkaService kafkaService;
 
     @Operation(
             summary = "Get all book",
@@ -68,5 +71,11 @@ public class BookQueryController {
     public BookResponseModel getBookDetail(@PathVariable String bookId){
         GetBookDetailQuery query = new GetBookDetailQuery(bookId);
         return queryGateway.query(query,ResponseTypes.instanceOf(BookResponseModel.class)).join();
+    }
+
+    @PostMapping("/sendMessage")
+    public void sendMessage(@RequestBody String message){
+        kafkaService.sendMessage("test",message);
+
     }
 }
