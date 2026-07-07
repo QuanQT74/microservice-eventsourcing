@@ -46,3 +46,20 @@ spring:
       idle-event-interval: 30000 #Khoảng thời gian gửi sự kiện idle (không có message) – hữu ích cho monitoring
       missing-topics-fatal: false #false = Không throw lỗi nếu topic chưa tồn tại (Spring sẽ thử tạo nếu auto.create.topics.enable=true ở broker).
       no-poll-threshold: 3 #
+
+      #=================================Send Mail==============
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: quankietsuat@gmail.com
+    password: vlke oyak ynjr qtli
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          transport:
+            protocol: smtp
+
+
