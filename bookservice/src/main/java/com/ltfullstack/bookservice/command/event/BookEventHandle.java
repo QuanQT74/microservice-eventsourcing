@@ -2,6 +2,7 @@ package com.ltfullstack.bookservice.command.event;
 
 import com.ltfullstack.bookservice.command.data.Book;
 import com.ltfullstack.bookservice.command.data.BookRepository;
+import com.ltfullstack.commonservice.event.BookUpadateStatusEvent;
 import jakarta.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.eventhandling.DisallowReplay;
@@ -43,5 +44,13 @@ public class BookEventHandle {
         }catch (Exception ex){
             log.error(ex.getMessage());
         }
+    }
+
+    @EventHandler
+    public void on(BookUpadateStatusEvent event){
+        bookRepository.findById(event.getBookId()).ifPresent(book -> {
+            book.setIsReady(event.getIsReady());
+            bookRepository.save(book);
+        });
     }
 }
