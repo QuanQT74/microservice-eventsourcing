@@ -4,7 +4,8 @@ import com.ltfullstack.bookservice.command.data.Book;
 import com.ltfullstack.bookservice.command.data.BookRepository;
 import com.ltfullstack.bookservice.query.model.BookResponseModel;
 import com.ltfullstack.bookservice.query.queris.GetAllBookQuery;
-import com.ltfullstack.bookservice.query.queris.GetBookDetailQuery;
+import com.ltfullstack.commonservice.model.BookResponseCommandModel;
+import com.ltfullstack.commonservice.queries.GetBookDetailQuery;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,8 +31,8 @@ public class BookProjection {
         return  listBook;
     }
     @QueryHandler
-    public BookResponseModel hanlde(GetBookDetailQuery query)throws Exception{
-        BookResponseModel bookResponseModel = new BookResponseModel();
+    public BookResponseCommandModel hanlde(GetBookDetailQuery query)throws Exception{
+        BookResponseCommandModel bookResponseModel = new BookResponseCommandModel();
         Book book = bookRepository.findById(query.getId()).orElseThrow(() -> new Exception("Not found Book with BookId:" + query.getId()));
         BeanUtils.copyProperties(book,bookResponseModel);
         return  bookResponseModel;

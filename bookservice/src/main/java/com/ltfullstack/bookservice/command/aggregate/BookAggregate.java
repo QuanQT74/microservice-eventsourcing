@@ -6,6 +6,8 @@ import com.ltfullstack.bookservice.command.command.UpdateCommandBook;
 import com.ltfullstack.bookservice.command.event.BookCreatedEvent;
 import com.ltfullstack.bookservice.command.event.BookDeleteEvent;
 import com.ltfullstack.bookservice.command.event.BookUpdateEvent;
+import com.ltfullstack.commonservice.command.UpdateStatusBookCommand;
+import com.ltfullstack.commonservice.event.BookUpadateStatusEvent;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -49,9 +51,18 @@ public class BookAggregate {
     @CommandHandler
     public void handle(DeleteCommandBook commandBook){
         BookDeleteEvent bookDeleteEvent = new BookDeleteEvent();
+
         BeanUtils.copyProperties(commandBook,bookDeleteEvent);
 
         AggregateLifecycle.apply(bookDeleteEvent);
+    }
+
+    @CommandHandler
+    public void handle(UpdateStatusBookCommand updateStatusBookCommand){
+        BookUpadateStatusEvent statusEvent = new BookUpadateStatusEvent();
+        BeanUtils.copyProperties(updateStatusBookCommand,statusEvent);
+
+        AggregateLifecycle.apply(statusEvent);
     }
     @EventSourcingHandler
     public  void on(BookCreatedEvent event){
@@ -71,5 +82,11 @@ public class BookAggregate {
     @EventSourcingHandler
     public void on(BookDeleteEvent event){
         AggregateLifecycle.markDeleted();
+    }
+
+    @EventSourcingHandler
+    public void on (BookUpadateStatusEvent event){
+        this.id = event.getBookId();
+        this.isReady = event.getIsReady();
     }
 }
