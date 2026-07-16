@@ -37,4 +37,14 @@ public class BorrowingEventsHandler {
         }
     }
 
+    @EventHandler
+    public void on(BorrowingReturnedEvent returnedEvent){
+        repository.findById(returnedEvent.getId()).ifPresent(borrowing -> {
+            borrowing.setStatus("RETURNED");
+            borrowing.setReturnData(returnedEvent.getReturnedDate());
+            repository.save(borrowing);
+        });
+    }
+
+
 }

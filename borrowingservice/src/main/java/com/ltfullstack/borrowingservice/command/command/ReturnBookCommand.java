@@ -1,0 +1,22 @@
+package com.ltfullstack.borrowingservice.command.command;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.axonframework.modelling.command.TargetAggregateIdentifier;
+
+import java.util.Date;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class ReturnBookCommand {
+    ////TẠO MỚI - Command cho việc trả sách
+    @TargetAggregateIdentifier
+    private String Id;
+
+    private String bookId;
+
+    private Date returnedDate;
+}

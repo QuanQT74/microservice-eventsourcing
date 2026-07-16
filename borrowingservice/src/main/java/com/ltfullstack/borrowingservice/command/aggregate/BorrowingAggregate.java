@@ -4,6 +4,8 @@ import com.ltfullstack.borrowingservice.command.command.CreateBorrowingCommand;
 import com.ltfullstack.borrowingservice.command.command.DeleteBorrowingCommand;
 import com.ltfullstack.borrowingservice.command.event.BorrowingDeleteEvent;
 import com.ltfullstack.borrowingservice.command.event.BorrowingCreatedEvent;
+import com.ltfullstack.borrowingservice.command.command.ReturnBookCommand;
+import com.ltfullstack.borrowingservice.command.event.BorrowingReturnedEvent;
 import lombok.NoArgsConstructor;
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
@@ -28,6 +30,7 @@ public class BorrowingAggregate {
 
     private Date returnData;
 
+    private String status;
 
     @CommandHandler
     public BorrowingAggregate(CreateBorrowingCommand command){
@@ -38,7 +41,15 @@ public class BorrowingAggregate {
     @CommandHandler
     public void handle (DeleteBorrowingCommand command){
         BorrowingDeleteEvent event = new BorrowingDeleteEvent(command.getId());
-        AggregateLifecycle.apply(command);
+        AggregateLifecycle.apply(event);
+    }
+    @CommandHandler
+    public void handle(ReturnBookCommand command){
+        BorrowingReturnedEvent event = new BorrowingReturnedEvent(
+                command.getId(),
+                command.getBookId(),
+                command.getReturnedDate());
+        AggregateLifecycle.apply(event);
     }
     @EventSourcingHandler
     public void on(BorrowingCreatedEvent brrowingCommadEvent){
@@ -55,6 +66,13 @@ public class BorrowingAggregate {
     @EventSourcingHandler
     public void on(BorrowingDeleteEvent borrowingDeleteEvent){
         this.id = borrowingDeleteEvent.getId();
+    }
+
+    @EventSourcingHandler
+    public  void on(BorrowingReturnedEvent borrowingReturnedEvent){
+        this.id = borrowingReturnedEvent.getId();
+        this.returnData = borrowingReturnedEvent.getReturnedDate();
+        this.status = "RETURNED";
     }
 
 }

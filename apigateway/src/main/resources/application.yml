@@ -3,10 +3,15 @@ server:
 spring:
   application:
     name: gateway-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://host.docker.internal:8180/realms/laptrinhfullstack
   data:
-   redis:
-    port: 6379
-    host: localhost
+    redis:
+      port: 6379
+      host: redis
   cloud:
     gateway:
       discovery:
@@ -16,8 +21,9 @@ spring:
         - id: employeeservice
           uri: lb://employeeservice
           predicates:
-             - Path=/api/v1/employees/**
+            - Path=/api/v1/employees/**
           filters:
+            - JwtHeaderFilter
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 10
@@ -29,16 +35,31 @@ spring:
           predicates:
             - Path=/api/v1/books/**
           filters:
+            - JwtHeaderFilter
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 10
                 redis-rate-limiter.burstCapacity: 20
                 redis-rate-limiter.requestedTokens: 1
+            - KeyAuthFilter
+        - id: userservice
+          uri: http://host.docker.internal:9004
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - name: JwtHeaderFilter
+
+        - id: userservice-public
+          uri: http://host.docker.internal:9004
+          predicates:
+            - Path=/api/v1/public/**
 eureka:
   instance:
-    hostname: localhost
+    hostname: discoveryservice
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
-      register-with-eureka: true
-      fetch-registry : true
+      defaultZone: http://discoveryservice:8761/eureka
+    register-with-eureka: true
+    fetch-registry: true
+
+

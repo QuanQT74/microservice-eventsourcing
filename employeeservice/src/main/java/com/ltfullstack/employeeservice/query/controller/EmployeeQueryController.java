@@ -1,9 +1,9 @@
 package com.ltfullstack.employeeservice.query.controller;
 
-import com.ltfullstack.employeeservice.command.data.Employee;
+import com.ltfullstack.commonservice.model.EmployeeResponseCommandModel;
 import com.ltfullstack.employeeservice.query.model.EmployeeResponseModel;
 import com.ltfullstack.employeeservice.query.queries.GetAllEmployeeQuery;
-import com.ltfullstack.employeeservice.query.queries.GetDetailEmployeeQuery;
+import com.ltfullstack.commonservice.queries.GetDetailEmployeeQuery;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,7 +13,6 @@ import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.lang.annotation.Target;
 import java.util.List;
 
 @RestController
@@ -68,10 +67,10 @@ public class EmployeeQueryController {
     )
 
     @GetMapping("/{employeeid}")
-    public EmployeeResponseModel getDetailEmployee(@PathVariable String employeeid){
-        EmployeeResponseModel employeeResponseModel = queryGateway.
+    public EmployeeResponseCommandModel getDetailEmployee(@PathVariable String employeeid){
+        EmployeeResponseCommandModel employeeResponseModel = queryGateway.
                 query(new GetDetailEmployeeQuery(employeeid),
-                        ResponseTypes.instanceOf(EmployeeResponseModel.class)).join();
+                        ResponseTypes.instanceOf(EmployeeResponseCommandModel.class)).join();
         return employeeResponseModel;
     }
 

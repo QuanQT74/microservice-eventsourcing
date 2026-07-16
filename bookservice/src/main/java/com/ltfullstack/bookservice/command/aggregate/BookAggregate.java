@@ -6,7 +6,9 @@ import com.ltfullstack.bookservice.command.command.UpdateCommandBook;
 import com.ltfullstack.bookservice.command.event.BookCreatedEvent;
 import com.ltfullstack.bookservice.command.event.BookDeleteEvent;
 import com.ltfullstack.bookservice.command.event.BookUpdateEvent;
+import com.ltfullstack.commonservice.command.BookRollBackStatusCommand;
 import com.ltfullstack.commonservice.command.UpdateStatusBookCommand;
+import com.ltfullstack.commonservice.event.BookRollBackEvent;
 import com.ltfullstack.commonservice.event.BookUpadateStatusEvent;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -64,6 +66,14 @@ public class BookAggregate {
 
         AggregateLifecycle.apply(statusEvent);
     }
+
+    @CommandHandler void handle(BookRollBackStatusCommand rollBackStatusCommand){
+        BookRollBackEvent rollBackEvent = new BookRollBackEvent();
+        BeanUtils.copyProperties(rollBackStatusCommand,rollBackEvent);
+
+        AggregateLifecycle.apply(rollBackEvent);
+
+    }
     @EventSourcingHandler
     public  void on(BookCreatedEvent event){
         this.id = event.getId();
@@ -88,5 +98,11 @@ public class BookAggregate {
     public void on (BookUpadateStatusEvent event){
         this.id = event.getBookId();
         this.isReady = event.getIsReady();
+    }
+
+    @EventSourcingHandler
+    public void on(BookRollBackEvent rollBackEvent){
+        this.id = rollBackEvent.getBookId();
+        this.isReady = rollBackEvent.getIsReady();
     }
 }

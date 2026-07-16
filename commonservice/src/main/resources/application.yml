@@ -1,0 +1,65 @@
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:broker:29092}
+    #====================Producer(Bên Gửi)============
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+      ## Reliability
+      acks: all #Rất quan trọng – Mức độ xác nhận từ Kafka:• 0: Không chờ (nhanh nhất, dễ mất dữ liệu)• 1: Chờ leader xác nhận• all: Chờ tất cả replica xác nhận (an toàn nhất)
+      retries: 3 #Số lần thử lại khi gửi thất bại (do network, leader thay đổi...).
+      max-block-ms: 5000 #Thời gian tối đa chờ khi buffer đầy hoặc metadata chưa sẵn sàng.
+
+      # Performance
+      batch-size: 16384  #Kích thước batch (bytes) – Kafka gom nhiều message nhỏ thành 1 batch để tăng throughput.
+      linger-ms: 5 #Thời gian chờ thêm (ms) trước khi gửi batch → cân bằng giữa độ trễ và hiệu suất.
+      compression-typ: snappy  #Nén dữ liệu: snappy (nhanh), lz4, zstd, gzip. Giảm băng thông.
+      buffer-memory: 33554432 #Dung lượng bộ nhớ buffer cho producer (mặc định 32MB)
+
+    # ==================== CONSUMER(Phần nhận) ====================
+
+    consumer:
+      group-id: ${KAFKA_GROUP_ID:default-group}
+      auto-offset-reset: earliest
+      enable-auto-commit: false #Tự động commit offset. Nên để false khi muốn kiểm soát commit thủ công.
+      auto-commit-interval: 1000 #Khoảng thời gian tự commit (chỉ có tác dụng khi enable-auto-commit=true)
+
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"          # Cho phép tất cả package
+        # spring.json.type.mapping: com.example.UserEvent:com.example.dto.UserEventDto
+        fetch-min-size: 1
+        fetch-max-wait-ms: 500
+        max-poll-records: 500 #Số message tối đa nhận được trong 1 lần poll.
+        max-poll-interval-ms: 300000 #Thời gian tối đa giữa 2 lần poll. Nếu vượt → consumer bị coi là chết và rebalance.
+
+    listener:
+      ack-mode: manual_immediate
+      #Cách commit offset:
+      #• RECORD: Commit sau mỗi message
+      #• BATCH: Commit sau mỗi batch
+      #• MANUAL_IMMEDIATE: Commit thủ công ngay lập tức (khuyến nghị cao)
+      #• MANUAL: Commit thủ công
+      poll-timeout: 3000 #Thời gian chờ poll tối đa (ms).
+      idle-event-interval: 30000 #Khoảng thời gian gửi sự kiện idle (không có message) – hữu ích cho monitoring
+      missing-topics-fatal: false #false = Không throw lỗi nếu topic chưa tồn tại (Spring sẽ thử tạo nếu auto.create.topics.enable=true ở broker).
+      no-poll-threshold: 3 #
+
+      #=================================Send Mail==============
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: quankietsuat@gmail.com
+    password: vlke oyak ynjr qtli
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          transport:
+            protocol: smtp
+
+

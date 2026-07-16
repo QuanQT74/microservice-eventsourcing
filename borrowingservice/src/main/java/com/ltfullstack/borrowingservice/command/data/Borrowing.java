@@ -25,4 +25,6 @@ public class Borrowing {
     private Date borrwingDate;
 
     private Date returnData;
+
+    private String status;  // "BORROWED" hoặc "RETURNED"
 }

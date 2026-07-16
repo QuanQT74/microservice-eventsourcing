@@ -38,7 +38,7 @@ public class UserController {
     @ApiResponse(responseCode = "200", description = "List of users")
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers(
-            @RequestParam(required = false) Boolean isActive) {
+            @RequestParam(required = false)  Boolean isActive) {
         List<UserResponse> users;
         if (isActive != null) {
             users = userService.getAllUsersByStatus(isActive);
