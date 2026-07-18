@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Library, Loader2, ArrowRight, BookOpen, Sparkles, Shield, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Library, ArrowRight, BookOpen, Sparkles, Shield, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { login, register } from "@/api/auth";
+import { login, register, getUserByUsername } from "@/api/auth";
 
 type AuthMode = "login" | "register";
 
@@ -25,8 +24,6 @@ export default function Welcome() {
     fullName: "",
   });
 
-  const navigate = useNavigate();
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginData.username || !loginData.password) return;
@@ -35,9 +32,25 @@ export default function Welcome() {
     try {
       const response = await login(loginData);
       localStorage.setItem("access_token", response.access_token);
+      
+      // Get user info to retrieve employeeId
+      console.log("[Welcome] Login success, getting user info for:", loginData.username);
+      const userInfo = await getUserByUsername(loginData.username);
+      console.log("[Welcome] User info:", userInfo);
+      
+      if (userInfo.employeeId) {
+        localStorage.setItem("library_member_id", userInfo.employeeId);
+        console.log("[Welcome] EmployeeId saved:", userInfo.employeeId);
+      } else {
+        console.error("[Welcome] No employeeId in userInfo!");
+        toast.error("Error", { description: "Account not linked to employee. Please register as member." });
+        return;
+      }
+      
       toast.success("Login successful!", { description: "Welcome back!" });
-      navigate("/");
+      window.location.href = "/";
     } catch (err) {
+      console.error("[Welcome] Login error:", err);
       toast.error("Login failed", { description: (err as Error).message });
     } finally {
       setLoading(false);

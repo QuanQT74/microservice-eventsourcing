@@ -1,39 +1,62 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { History, RotateCcw, BookOpen, Calendar, CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/context/UserContext";
-import {
-  getActiveBorrowings,
-  getBorrowingHistory,
-  markReturned,
-} from "@/lib/borrowings-storage";
+import { borrowingApi } from "@/api/borrowing";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { BorrowingResponse } from "@/types";
 
 export default function MyBorrowings() {
   const { employeeId } = useUser();
-  const [, setRefresh] = useState(0);
+  const queryClient = useQueryClient();
   const [returningId, setReturningId] = useState<string | null>(null);
 
-  const active = employeeId ? getActiveBorrowings(employeeId) : [];
-  const history = employeeId ? getBorrowingHistory(employeeId) : [];
+  const { data: borrowings, isLoading } = useQuery<BorrowingResponse[]>({
+    queryKey: ["my-borrowings", employeeId],
+    queryFn: () => borrowingApi.getMyBorrows(employeeId!),
+    enabled: !!employeeId,
+    refetchInterval: 30000,
+  });
 
-  const handleReturn = (id: string, bookName: string) => {
-    setReturningId(id);
-    setTimeout(() => {
-      markReturned(id);
-      setReturningId(null);
-      setRefresh((n) => n + 1);
-      toast.success("Book marked as returned", {
-        description: `"${bookName}" — return API coming soon. Status saved locally.`,
+  const returnMutation = useMutation({
+    mutationFn: ({ borrowingId, bookId }: { borrowingId: string; bookId: string }) =>
+      borrowingApi.returnBook(borrowingId, bookId),
+    onSuccess: (_, variables) => {
+      const borrowing = borrowings?.find(b => b.id === variables.borrowingId);
+      toast.success("Book returned successfully!", {
+        description: borrowing ? `"${borrowing.bookName}" has been returned.` : "Book returned successfully.",
         icon: <CheckCircle2 className="h-4 w-4 text-green-500" />,
       });
-    }, 500);
+      queryClient.invalidateQueries({ queryKey: ["my-borrowings"] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+    onError: (err: Error) => {
+      toast.error("Failed to return book", { description: err.message });
+    },
+    onSettled: () => setReturningId(null),
+  });
+
+  const active = borrowings?.filter((b) => {
+    const status = String(b.status).toUpperCase();
+    return status === "BORROWED" || status === "1" || status === "ACTIVE";
+  }) || [];
+
+  const history = borrowings?.filter((b) => {
+    const status = String(b.status).toUpperCase();
+    return status === "RETURNED" || status === "0";
+  }) || [];
+
+  const handleReturn = (id: string, bookId: string) => {
+    setReturningId(id);
+    returnMutation.mutate({ borrowingId: id, bookId });
   };
 
   if (!employeeId) {
@@ -49,6 +72,18 @@ export default function MyBorrowings() {
             </Link>
           }
         />
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="My Books" description="Loading..." />
+        <div className="space-y-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
       </div>
     );
   }
@@ -74,7 +109,7 @@ export default function MyBorrowings() {
           icon={<CheckCircle2 className="h-5 w-5" />}
         />
         <Stat
-          label="Reading Time"
+          label="Reading Days"
           value={history.length > 0 ? `${history.length * 14}` : "0"}
           icon={<Clock className="h-5 w-5" />}
           description="Total days"
@@ -128,16 +163,16 @@ export default function MyBorrowings() {
                       <BookOpen className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
-                      <p className="font-semibold text-base">{b.bookName}</p>
-                      <p className="text-sm text-muted-foreground">{b.bookAuthor}</p>
+                      <p className="font-semibold text-base">{b.bookName || 'Unknown Book'}</p>
+                      <p className="text-sm text-muted-foreground">{b.bookAuthor || 'Unknown Author'}</p>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          Borrowed {b.borrowedDate}
+                          Borrowed {b.borrwingDate ? new Date(b.borrwingDate).toLocaleDateString() : 'N/A'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          Due in {Math.max(0, 14 - Math.floor((Date.now() - new Date(b.borrowedDate).getTime()) / (1000 * 60 * 60 * 24)))} days
+                          Due {b.returnData ? new Date(b.returnData).toLocaleDateString() : 'N/A'}
                         </span>
                       </div>
                     </div>
@@ -146,12 +181,20 @@ export default function MyBorrowings() {
                     <Badge variant="success" className="text-sm px-3 py-1">ACTIVE</Badge>
                     <Button
                       size="sm"
-                      
-                      onClick={() => handleReturn(b.id, b.bookName)}
-                      isLoading={returningId === b.id}
+                      onClick={() => handleReturn(b.id, b.bookId)}
+                      disabled={returningId === b.id}
                     >
-                      <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                      Return
+                      {returningId === b.id ? (
+                        <>
+                          <Clock className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                          Returning...
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                          Return
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -195,9 +238,9 @@ export default function MyBorrowings() {
                       <CheckCircle2 className="h-4 w-4" />
                     </div>
                     <div className="space-y-0.5">
-                      <p className="font-medium">{b.bookName}</p>
+                      <p className="font-medium">{b.bookName || 'Unknown Book'}</p>
                       <p className="text-xs text-muted-foreground">
-                        Borrowed: {b.borrowedDate}
+                        Borrowed: {b.borrwingDate ? new Date(b.borrwingDate).toLocaleDateString() : 'N/A'}
                       </p>
                     </div>
                   </div>

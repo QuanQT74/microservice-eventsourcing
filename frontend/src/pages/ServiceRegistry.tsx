@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle, Clock, XCircle, Question, MoreHorizontal } from "lucide-react";
+import { CheckCircle, Clock, XCircle, HelpCircle, MoreHorizontal } from "lucide-react";
 import { fetchServices, type Service } from "@/mocks/services";
 import { ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,9 +23,14 @@ function StatusBadge({ status }: { status: Service["status"] }) {
       colorClass: "bg-danger/10 text-danger border-danger/20",
     },
     UNKNOWN: {
-      icon: Question,
+      icon: HelpCircle,
       label: "UNKNOWN",
       colorClass: "bg-muted/10 text-muted border-muted/20",
+    },
+    STOPPING: {
+      icon: Clock,
+      label: "STOPPING",
+      colorClass: "bg-warning/10 text-warning border-warning/20",
     },
   };
 
@@ -118,7 +123,7 @@ function ServiceRowSkeleton() {
 }
 
 export default function ServiceRegistry() {
-  const { services = [], isLoading, isError, error } = useQuery({
+  const { data: services = [], isLoading, isError, error } = useQuery({
     queryKey: ["services"],
     queryFn: fetchServices,
   });
@@ -181,7 +186,7 @@ export default function ServiceRegistry() {
           <div className="p-6">
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
-                <ServiceRowSkeleton key={i} stagger={i % 6} />
+                <ServiceRowSkeleton key={i} />
               ))}
             </div>
           </div>
@@ -207,17 +212,15 @@ export default function ServiceRegistry() {
                       className="py-12 text-center text-muted"
                       role="alert"
                     >
-                      <Question className="mx-auto mb-2 h-8 w-8 opacity-50" />
+                      <HelpCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
                       <p className="text-sm font-medium">No services found</p>
                     </td>
                   </tr>
                 ) : (
-                  services.map((svc, i) => (
+                  services.map((svc) => (
                     <ServiceRow
                       svc={svc}
                       key={svc.id}
-                      className={i % 2 === 0 ? "bg-white/30" : "bg-transparent"}
-                      highlight={i % 3 === 0}
                     />
                   ))
                 )}

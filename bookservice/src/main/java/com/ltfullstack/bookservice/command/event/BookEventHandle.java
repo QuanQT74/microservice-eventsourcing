@@ -4,7 +4,6 @@ import com.ltfullstack.bookservice.command.data.Book;
 import com.ltfullstack.bookservice.command.data.BookRepository;
 import com.ltfullstack.commonservice.event.BookRollBackEvent;
 import com.ltfullstack.commonservice.event.BookUpadateStatusEvent;
-import jakarta.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.eventhandling.DisallowReplay;
 import org.axonframework.eventhandling.EventHandler;
@@ -12,8 +11,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-
-import java.util.Optional;
 @Slf4j
 @Component
 public class BookEventHandle {
@@ -23,7 +20,7 @@ public class BookEventHandle {
     @EventHandler
     public void on(BookCreatedEvent event){
         Book book = new Book();
-        BeanUtils.copyProperties(event,book);
+        BeanUtils.copyProperties(event, book);
         bookRepository.save(book);
     }
 
@@ -33,17 +30,23 @@ public class BookEventHandle {
             book.setName(event.getName());
             book.setAuthor(event.getAuthor());
             book.setIsReady(event.getIsReady());
+            book.setImageUrl(event.getImageUrl());
             bookRepository.save(book);
         });
     }
+
     @EventHandler
     @DisallowReplay
     public void on(BookDeleteEvent event){
         try{
-            bookRepository.findById(event.getId()).orElseThrow(() -> new NotFoundException("Book not found"));
+            if (!bookRepository.existsById(event.getId())) {
+                log.warn("Book not found with id: {}", event.getId());
+                return;
+            }
             bookRepository.deleteById(event.getId());
+            log.info("Book deleted: {}", event.getId());
         }catch (Exception ex){
-            log.error(ex.getMessage());
+            log.error("Error deleting book: {}", ex.getMessage());
         }
     }
 

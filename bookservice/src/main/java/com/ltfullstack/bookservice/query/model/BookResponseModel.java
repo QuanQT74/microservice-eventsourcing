@@ -18,4 +18,13 @@ public class BookResponseModel {
 
     private  Boolean isReady;
 
+    private String imageUrl;
+
+    private String description;
+
+    private String publisher;
+
+    private Integer publishedYear;
+
+    private String genre;
 }

@@ -1,12 +1,13 @@
 export interface Service {
   id: string;
   name: string;
-  status: "UP" | "DOWN" | "STARTING" | "STOPPING";
+  status: "UP" | "DOWN" | "STARTING" | "STOPPING" | "UNKNOWN";
   instances: number;
   health: "HEALTHY" | "UNHEALTHY";
   port: number;
   lastHeartbeat: string;
   endpoints: string[];
+  namespace?: string;
 }
 
 export interface SagaStep {

@@ -2,6 +2,6 @@ import { apiFetch } from "./client";
 import type { Book } from "@/types";
 
 export const booksApi = {
-  getAll: () => apiFetch<Book[]>("/api/v1/books"),
-  getById: (id: string) => apiFetch<Book>(`/api/v1/books/${id}`),
+  getAll: () => apiFetch<Book[]>("/books"),
+  getById: (id: string) => apiFetch<Book>(`/books/${id}`),
 };

@@ -2,7 +2,6 @@ package com.ltfullstack.borrowingservice.command.event;
 
 import com.ltfullstack.borrowingservice.command.data.Borrowing;
 import com.ltfullstack.borrowingservice.command.data.BorrowingRepository;
-import jakarta.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +22,7 @@ public class BorrowingEventsHandler {
         borrowing.setBookId(createdEvent.getBookId());
         borrowing.setEmployeeId(createdEvent.getEmployeeId());
         borrowing.setBorrwingDate(createdEvent.getBorrwingDate());
+        borrowing.setStatus("BORROWED");
 
         repository.save(borrowing);
     }
@@ -30,8 +30,9 @@ public class BorrowingEventsHandler {
     @EventHandler
     public void on(BorrowingDeleteEvent deleteEvent){
         try{
-            repository.findById(deleteEvent.getId()).orElseThrow(() -> new NotFoundException("Book not found"));
-            repository.deleteById(deleteEvent.getId());
+            if (repository.existsById(deleteEvent.getId())) {
+                repository.deleteById(deleteEvent.getId());
+            }
         }catch (Exception ex){
             log.error(ex.getMessage());
         }

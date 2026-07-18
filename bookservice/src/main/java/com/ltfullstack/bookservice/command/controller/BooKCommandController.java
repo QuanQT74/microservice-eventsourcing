@@ -44,7 +44,7 @@ public class BooKCommandController {
     )
     @PostMapping
     public String addBook(@Valid @RequestBody BookRequestModel model){
-        CreateCommandBook command = new CreateCommandBook(UUID.randomUUID().toString(),model.getName(),model.getAuthor(),true);
+        CreateCommandBook command = new CreateCommandBook(UUID.randomUUID().toString(),model.getName(),model.getAuthor(),true, model.getImageUrl());
         return commandGateway.sendAndWait(command);
     }
 
@@ -70,7 +70,7 @@ public class BooKCommandController {
 
     @PutMapping({"/{bookId}"})
     public String updateBook( @RequestBody BookRequestModel model , @PathVariable String bookId){
-        UpdateCommandBook updateCommonandBook = new UpdateCommandBook(bookId,model.getName(),model.getAuthor(),model.getIsReady());
+        UpdateCommandBook updateCommonandBook = new UpdateCommandBook(bookId,model.getName(),model.getAuthor(),model.getIsReady(), model.getImageUrl());
         return commandGateway.sendAndWait(updateCommonandBook);
     }
 

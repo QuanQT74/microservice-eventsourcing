@@ -93,7 +93,6 @@ services:
     container_name: mysql
     environment:
       MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: book_db
     ports:
       - "3307:3306"
     volumes:
@@ -144,12 +143,13 @@ services:
       - axonserver
     environment:
       - AXON_AXONSERVER_SERVERS=axonserver
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/book_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&createDatabaseIfNotExist=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=123456
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discoveryservice:8761/eureka
       - IDP_URL=http://keycloak:8080
       - SERVER_PORT=9004
+      - EMPLOYEE_SERVICE_URL=http://employeeservice:9002
     extra_hosts:
       - "host.docker.internal:host-gateway"
   bookservice:
@@ -166,9 +166,73 @@ services:
       - axonserver
     environment:
       - AXON_AXONSERVER_SERVERS=axonserver
+    # ĐÚNG
+  borrowingservice:
+    build:
+      context: .
+      dockerfile: borrowingservice/Dockerfile
+    ports:
+      - "9005:9005"
+    networks:
+      - microservice-networks
+    depends_on:
+      - discoveryservice
+      - mysql
+      - axonserver
+    environment:
+      - AXON_AXONSERVER_SERVERS=axonserver
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: keycloak
+    command: start-dev --import-realm
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - "8180:8080"
+    networks:
+      - microservice-networks
+    volumes:
+      - ./keycloak/realms:/opt/keycloak/data/import:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: keycloak-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    networks:
+      - microservice-networks
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  employeeservice:
+    build:
+      context: .
+      dockerfile: employeeservice/Dockerfile
+    ports:
+      - "9002:9002"
+    networks:
+      - microservice-networks
+    depends_on:
+      - discoveryservice
+      - mysql
+      - axonserver
+    environment:
+      - AXON_AXONSERVER_SERVERS=axonserver
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/employee_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=123456
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discoveryservice:8761/eureka
 networks:
   microservice-networks:
+    name: eventsourcing_microservice-networks
     driver: bridge
 volumes:
   mysql-data:

@@ -7,7 +7,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://host.docker.internal:8180/realms/laptrinhfullstack
+          issuer-uri: http://keycloak:8080/realms/laptrinhfullstack
   data:
     redis:
       port: 6379
@@ -29,11 +29,22 @@ spring:
                 redis-rate-limiter.replenishRate: 10
                 redis-rate-limiter.burstCapacity: 20
                 redis-rate-limiter.requestedTokens: 1
-            - KeyAuthFilter
+            
         - id: bookservice
           uri: lb://bookservice
           predicates:
             - Path=/api/v1/books/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: borrowingservice
+          uri: lb://borrowingservice
+          predicates:
+            - Path=/api/v1/borrowings/**
           filters:
             - JwtHeaderFilter
             - name: RequestRateLimiter
@@ -41,18 +52,33 @@ spring:
                 redis-rate-limiter.replenishRate: 10
                 redis-rate-limiter.burstCapacity: 20
                 redis-rate-limiter.requestedTokens: 1
-            - KeyAuthFilter
+
+        - id: borrowingservice-command
+          uri: lb://borrowingservice
+          predicates:
+            - Path=/api/v1/borrowing/**
+          filters:
+            - JwtHeaderFilter
+          
+        - id: userservice-register
+          uri: http://userservice:9004
+          predicates:
+            - Path=/api/v1/users/register
+            - Method=POST
+
+        - id: userservice-public
+          uri: http://userservice:9004
+          predicates:
+            - Path=/api/v1/users/me/**
+          filters:
+            - RemoveRequestHeader=Authorization
+
         - id: userservice
-          uri: http://host.docker.internal:9004
+          uri: http://userservice:9004
           predicates:
             - Path=/api/v1/users/**
           filters:
             - name: JwtHeaderFilter
-
-        - id: userservice-public
-          uri: http://host.docker.internal:9004
-          predicates:
-            - Path=/api/v1/public/**
 eureka:
   instance:
     hostname: discoveryservice

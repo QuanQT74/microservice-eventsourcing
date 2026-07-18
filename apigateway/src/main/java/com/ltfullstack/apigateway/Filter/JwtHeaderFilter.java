@@ -25,6 +25,7 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
                     var username = claims.get("preferred_username").toString();
 
                     ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                            .header("Authorization", exchange.getRequest().getHeaders().getFirst("Authorization"))
                             .header("X-User-ID", userId)
                             .header("X-Username", username)
                             .build();

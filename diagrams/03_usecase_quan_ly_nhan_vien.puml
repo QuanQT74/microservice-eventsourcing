@@ -1,0 +1,34 @@
+@startuml
+skinparam backgroundColor white
+skinparam actorStyle awesome
+skinparam ArrowColor #2d6a4f
+skinparam usecase {
+  BackgroundColor #d8f3dc
+  BorderColor #2d6a4f
+}
+left to right direction
+title Sơ đồ Use Case Quản Lý Nhân Viên - EmployeeService
+
+actor "Quản trị viên" as admin
+
+rectangle "EmployeeService (Command + Query)" {
+  usecase "Xem danh sách nhân viên\n(EmployeeQueryController)" as UC_LIST_EMP
+  usecase "Tìm kiếm nhân viên" as UC_SEARCH_EMP
+  usecase "Xem chi tiết nhân viên\n(GET /api/v1/employees/{id})" as UC_DETAIL_EMP
+
+  usecase "Thêm nhân viên\n(CreateEmployeeCommand)" as UC_CREATE_EMP
+  usecase "Sửa thông tin nhân viên\n(UpdateEmployeeCommand)" as UC_UPDATE_EMP
+  usecase "Xóa nhân viên\n(DeleteEmployeeCommand)" as UC_DELETE_EMP
+  usecase "Cập nhật trạng thái kỷ luật\n(isDisciplined flag)" as UC_DISCIPLINE
+}
+
+admin --> UC_LIST_EMP
+admin --> UC_SEARCH_EMP
+admin --> UC_DETAIL_EMP
+admin --> UC_CREATE_EMP
+admin --> UC_UPDATE_EMP
+admin --> UC_DELETE_EMP
+admin --> UC_DISCIPLINE
+
+UC_UPDATE_EMP ..> UC_DISCIPLINE : <<extend>>
+@enduml

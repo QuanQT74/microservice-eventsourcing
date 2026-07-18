@@ -38,7 +38,9 @@ services:
 
 networks:
   microservice-networks:
+    name: eventsourcing_microservice-networks
     driver: bridge
+    external: true
 
 volumes:
   keycloak-db-data:

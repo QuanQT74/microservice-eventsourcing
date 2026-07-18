@@ -1,23 +1,35 @@
 import type { ApiError } from "@/types";
+import { getToken } from "@/context/UserContext";
 
-const API_KEY = import.meta.env.VITE_API_KEY ?? "ltfullstack";
+const API_BASE = "http://localhost:8085/api/v1";
 
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit & { auth?: boolean } = {}
+  options: RequestInit & { auth?: boolean; apiKey?: boolean } = {}
 ): Promise<T> {
-  const { auth = false, headers: customHeaders, ...rest } = options;
+  const { auth = true, apiKey = false, headers: customHeaders, ...rest } = options;
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...customHeaders,
   };
 
+  // Add Bearer token if auth is required
   if (auth) {
-    (headers as Record<string, string>)["apiKey"] = API_KEY;
+    const token = getToken();
+    if (token) {
+      (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+    }
   }
 
-  const response = await fetch(path, { headers, ...rest });
+  // Add API Key as fallback
+  if (apiKey) {
+    const apiKeyValue = import.meta.env.VITE_API_KEY ?? "ltfullstack";
+    (headers as Record<string, string>)["apiKey"] = apiKeyValue;
+  }
+
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+  const response = await fetch(url, { headers, ...rest });
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;

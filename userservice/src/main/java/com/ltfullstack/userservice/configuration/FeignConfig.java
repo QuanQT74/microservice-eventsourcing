@@ -1,9 +1,9 @@
 package com.ltfullstack.userservice.configuration;
 
 import feign.Client;
-import feign.form.spring.SpringFormEncoder;
 import feign.codec.Encoder;
 import feign.httpclient.ApacheHttpClient;
+import feign.jackson.JacksonEncoder;
 import org.apache.http.impl.client.HttpClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +17,7 @@ public class FeignConfig {
     }
 
     @Bean
-    public Encoder formEncoder() {
-        return new SpringFormEncoder();
+    public Encoder feignEncoder() {
+        return new JacksonEncoder();
     }
 }

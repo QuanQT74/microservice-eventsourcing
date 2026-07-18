@@ -7,8 +7,8 @@ interface UserContextValue {
   employee: Employee | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  accessToken: string | null;
   setEmployeeId: (id: string) => Promise<void>;
-  login: (userId: string) => void;
   logout: () => void;
 }
 
@@ -39,11 +39,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, [employeeId]);
 
-  const login = (userId: string) => {
-    localStorage.setItem(STORAGE_KEY, userId);
-    setEmployeeIdState(userId);
-  };
-
   const setEmployeeId = async (id: string) => {
     const trimmed = id.trim();
     const emp = await employeesApi.getById(trimmed);
@@ -55,6 +50,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("library_borrowings");
     setEmployeeIdState(null);
     setEmployee(null);
   };
@@ -66,8 +62,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         employee,
         isLoading,
         isAuthenticated: !!employeeId && !!employee,
+        accessToken: localStorage.getItem(TOKEN_KEY),
         setEmployeeId,
-        login,
         logout,
       }}
     >

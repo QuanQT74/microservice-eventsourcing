@@ -28,7 +28,6 @@ export default function MetricCard({
   trend,
   description,
   className,
-  isLoading,
   variant = "default",
 }: MetricCardProps) {
   return (

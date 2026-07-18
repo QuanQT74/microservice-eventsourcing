@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { BookMarked, User, Star, Clock } from "lucide-react";
+import { BookMarked, User, Star, Clock, ImageIcon } from "lucide-react";
 import type { Book } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface BookCardProps {
   book: Book;
@@ -36,21 +37,41 @@ function getGradient(id: string) {
 }
 
 export default function BookCard({ book }: BookCardProps) {
-  const { gradient, accent } = getGradient(book.id);
+  const { gradient } = getGradient(book.id);
+  const [imageError, setImageError] = useState(false);
+
+  const hasImage = book.imageUrl && !imageError;
 
   return (
     <Card className="group overflow-hidden border-0 bg-card shadow-md transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10">
       {/* Cover section */}
-      <div className={`relative h-44 bg-gradient-to-br ${gradient} p-5`}>
-        {/* Overlay patterns */}
-        <div className="absolute inset-0 bg-black/10" />
-        <div className={`absolute -right-6 -top-6 h-32 w-32 rounded-full ${accent} blur-2xl`} />
-        <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-white/10 blur-xl" />
+      <div className={`relative h-56 ${hasImage ? '' : `bg-gradient-to-br ${gradient}`}`}>
+        {hasImage ? (
+          <>
+            {/* Real book cover image */}
+            <img
+              src={book.imageUrl}
+              alt={book.name}
+              className="h-full w-full object-cover object-top"
+              onError={() => setImageError(true)}
+            />
+            {/* Gradient overlay at bottom */}
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white/80 to-transparent" />
+          </>
+        ) : (
+          <>
+            {/* Fallback gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 to-teal-800" />
+            <div className="absolute inset-0 bg-black/10" />
+            <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-emerald-400/20 blur-2xl" />
+            <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-white/10 blur-xl" />
+          </>
+        )}
 
         {/* Status badge */}
         <Badge
           variant={book.isReady ? "success" : "danger"}
-          className="absolute right-3 top-3 z-10 shadow-lg"
+          className="absolute right-3 top-3 z-20 shadow-lg"
         >
           {book.isReady ? (
             <span className="flex items-center gap-1">
@@ -65,32 +86,49 @@ export default function BookCard({ book }: BookCardProps) {
           )}
         </Badge>
 
-        {/* Book icon */}
-        <div className="relative flex h-full flex-col justify-between">
-          <div className="flex items-start justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
-              <BookMarked className="h-5 w-5 text-white" />
+        {/* Book title overlay for fallback */}
+        {!hasImage && (
+          <div className="relative z-10 flex h-full flex-col justify-between p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
+                <BookMarked className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex items-center gap-1 rounded-full bg-white/20 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                <Star className="h-3 w-3 fill-current" />
+                4.8
+              </div>
             </div>
-            <div className="flex items-center gap-1 rounded-full bg-white/20 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
-              <Star className="h-3 w-3 fill-current" />
-              4.8
+            <div className="space-y-1">
+              <p className="line-clamp-2 text-lg font-bold leading-tight text-white drop-shadow-md">
+                {book.name}
+              </p>
+              <div className="flex items-center gap-1.5 text-sm text-white/90">
+                <User className="h-3.5 w-3.5" />
+                {book.author}
+              </div>
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <ImageIcon className="h-16 w-16 text-white/20" />
             </div>
           </div>
-
-          <div className="space-y-2">
-            <p className="line-clamp-2 text-lg font-bold leading-tight text-white drop-shadow-sm">
-              {book.name}
-            </p>
-            <p className="flex items-center gap-1.5 text-sm text-white/90">
-              <User className="h-3.5 w-3.5" />
-              {book.author}
-            </p>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Content section */}
       <CardContent className="p-4">
+        {!hasImage && (
+          <div className="mb-2 flex items-center gap-1.5 text-sm text-white/90">
+            <User className="h-3.5 w-3.5" />
+            {book.author}
+          </div>
+        )}
+        
+        {book.description && (
+          <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
+            {book.description}
+          </p>
+        )}
+
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">ID:</span>
@@ -103,7 +141,20 @@ export default function BookCard({ book }: BookCardProps) {
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {book.genre && (
+            <Badge variant="outline" className="text-xs">
+              {book.genre}
+            </Badge>
+          )}
+          {book.publishedYear && (
+            <Badge variant="outline" className="text-xs">
+              {book.publishedYear}
+            </Badge>
+          )}
+        </div>
+
+        <div className="mt-3 flex gap-2">
           <Link to={`/books/${book.id}`} className="flex-1">
             <Button
               size="sm"

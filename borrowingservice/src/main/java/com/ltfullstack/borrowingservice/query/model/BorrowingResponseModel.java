@@ -21,4 +21,8 @@ public class BorrowingResponseModel {
     private Date returnData;
 
     private String status;
+    
+    private String bookName;
+    
+    private String bookAuthor;
 }

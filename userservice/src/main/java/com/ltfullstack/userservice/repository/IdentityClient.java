@@ -1,5 +1,6 @@
 package com.ltfullstack.userservice.repository;
 
+import com.ltfullstack.userservice.configuration.FeignConfig;
 import com.ltfullstack.userservice.dto.identity.TokenExchangeParam;
 import com.ltfullstack.userservice.dto.identity.TokenResponse;
 import com.ltfullstack.userservice.dto.identity.UserCreationParam;
@@ -10,10 +11,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-@FeignClient(name = "identity-client", url = "${idp.url}")
+@FeignClient(name = "identity-client", url = "${idp.url}", configuration = FeignConfig.class)
 public interface IdentityClient {
     @PostMapping(
-            value = "/realms/laptrinhfullstack/protocol/openid-connect/token",
+            value = "/realms/master/protocol/openid-connect/token",
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE
     )
     TokenResponse exTokenExchangeParam(@RequestBody TokenExchangeParam formData);

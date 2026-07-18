@@ -20,4 +20,5 @@ public class CreateCommandBook {
 
     private  Boolean isReady;
 
+    private String imageUrl;
 }

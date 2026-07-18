@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { BookOpen, History, User, Library, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
+import { getUserInfo } from "@/api/auth";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -13,8 +14,9 @@ const mobileLinks = [
 
 export default function Header() {
   const { pathname } = useLocation();
-  const { employee, logout } = useUser();
+  const { logout } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const userInfo = getUserInfo();
 
   return (
     <>
@@ -55,18 +57,17 @@ export default function Header() {
 
           {/* User section */}
           <div className="flex items-center gap-3">
-            {employee ? (
+            {userInfo ? (
               <div className="hidden sm:flex items-center gap-3">
                 <div className="text-right">
                   <p className="text-sm font-semibold leading-none">
-                    {employee.firstName} {employee.lastName}
+                    {userInfo.name || userInfo.preferred_username}
                   </p>
                   <p className="text-xs text-muted-foreground">Member</p>
                 </div>
                 <div className="relative">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-emerald-700 text-sm font-bold text-white shadow-md ring-2 ring-white">
-                    {employee.firstName[0]}
-                    {employee.lastName[0]}
+                    {(userInfo.name || userInfo.preferred_username)[0].toUpperCase()}
                   </div>
                   <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 ring-2 ring-white" />
                 </div>
@@ -76,7 +77,7 @@ export default function Header() {
               </div>
             ) : (
               <Link to="/welcome">
-                <Button size="sm"  className="hidden sm:inline-flex shadow-md">
+                <Button size="sm" className="hidden sm:inline-flex shadow-md">
                   Sign In
                 </Button>
               </Link>
@@ -117,7 +118,7 @@ export default function Header() {
                   </Link>
                 );
               })}
-              {employee && (
+              {userInfo && (
                 <button
                   onClick={() => {
                     logout();

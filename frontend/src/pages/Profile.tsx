@@ -159,10 +159,10 @@ export default function Profile() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
                 <Mail className="h-4 w-4 text-primary" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Member ID (Kin)</p>
-                <p className="font-mono font-medium">{employee.Kin || "N/A"}</p>
-              </div>
+          <div>
+              <p className="text-xs text-muted-foreground">Member ID (Kin)</p>
+              <p className="font-mono font-medium">{employee.Kin || "N/A"}</p>
+          </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">

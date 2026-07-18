@@ -71,6 +71,13 @@
 			<version>3.8.0</version>
 		</dependency>
 
+		<!-- Feign Jackson Encoder -->
+		<dependency>
+			<groupId>io.github.openfeign</groupId>
+			<artifactId>feign-jackson</artifactId>
+			<version>13.0</version>
+		</dependency>
+
 		<!-- Axon Framework -->
 		<dependency>
 			<groupId>org.axonframework</groupId>

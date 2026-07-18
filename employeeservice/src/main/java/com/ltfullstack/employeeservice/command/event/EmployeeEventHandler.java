@@ -2,7 +2,6 @@ package com.ltfullstack.employeeservice.command.event;
 
 import com.ltfullstack.employeeservice.command.data.Employee;
 import com.ltfullstack.employeeservice.command.data.EmployeeRepository;
-import jakarta.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.eventhandling.DisallowReplay;
 import org.axonframework.eventhandling.EventHandler;
@@ -19,27 +18,36 @@ public class EmployeeEventHandler {
     @EventHandler
     public void on(EmployeeCreatedEvent employeeCreatedEvent){
         Employee employee = new Employee();
-        BeanUtils.copyProperties(employeeCreatedEvent,employee);
+        BeanUtils.copyProperties(employeeCreatedEvent, employee);
         employeeRepository.save(employee);
+        log.info("Employee created: {}", employeeCreatedEvent.getId());
     }
-    @EventHandler void on(EmployeeUpdatedEvent employeeUpdatedEvent){
-       Employee employee =  employeeRepository.findById(employeeUpdatedEvent.getId()).
-               orElseThrow(()-> new NotFoundException("Employ not found"));
-       employee.setIsDisciplined(employeeUpdatedEvent.getIsDisciplined());
-       employee.setKin(employeeUpdatedEvent.getKin());
-       employee.setFirstName(employeeUpdatedEvent.getFirstName());
-       employee.setLastName(employeeUpdatedEvent.getLastName());
-       employeeRepository.save(employee);
 
+    @EventHandler
+    public void on(EmployeeUpdatedEvent employeeUpdatedEvent){
+        employeeRepository.findById(employeeUpdatedEvent.getId())
+            .ifPresentOrElse(employee -> {
+                employee.setIsDisciplined(employeeUpdatedEvent.getIsDisciplined());
+                employee.setKin(employeeUpdatedEvent.getKin());
+                employee.setFirstName(employeeUpdatedEvent.getFirstName());
+                employee.setLastName(employeeUpdatedEvent.getLastName());
+                employeeRepository.save(employee);
+                log.info("Employee updated: {}", employeeUpdatedEvent.getId());
+            }, () -> log.warn("Employee not found: {}", employeeUpdatedEvent.getId()));
     }
+
     @EventHandler
     @DisallowReplay
     public void on(EmployeeDeleteEvent employeeDeleteEvent){
         try {
-            employeeRepository.findById(employeeDeleteEvent.getId()).orElseThrow(()->new NotFoundException("Employ not found"));
+            if (!employeeRepository.existsById(employeeDeleteEvent.getId())) {
+                log.warn("Employee not found: {}", employeeDeleteEvent.getId());
+                return;
+            }
             employeeRepository.deleteById(employeeDeleteEvent.getId());
+            log.info("Employee deleted: {}", employeeDeleteEvent.getId());
         }catch (Exception ex){
-            log.error(ex.getMessage());
+            log.error("Error deleting employee: {}", ex.getMessage());
         }
     }
 }

@@ -19,4 +19,5 @@ public class UpdateCommandBook {
 
     Boolean isReady;
 
+    String imageUrl;
 }

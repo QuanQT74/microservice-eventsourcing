@@ -3,79 +3,69 @@ package com.ltfullstack.employeeservice.command.controller;
 import com.ltfullstack.employeeservice.command.command.CreateEmployeeCommand;
 import com.ltfullstack.employeeservice.command.command.DeleteEmployeeCommand;
 import com.ltfullstack.employeeservice.command.command.UpdateEmployeeCommand;
+import com.ltfullstack.employeeservice.command.data.Employee;
+import com.ltfullstack.employeeservice.command.data.EmployeeRepository;
 import com.ltfullstack.employeeservice.command.model.CreateEmployeeModel;
 import com.ltfullstack.employeeservice.command.model.UpdateEmployeeModel;
-import io.swagger.v3.oas.annotations.Hidden;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import org.apache.coyote.http11.filters.SavedRequestInputFilter;
+import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("api/v1/employees")
-@Tag(name = "Employee Command")
 public class EmployeeCommandController {
     @Autowired
     private CommandGateway commandGateway;
 
-    @Operation(
-            summary = "Create a new employee",
-            description = "Create a new employee and publish an EmployeeCreatedEvent to Axon Server.",
-            responses = {
-                    @ApiResponse(
-                            description = "Employee created successfully",
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
-                            responseCode = "200"),
-                    @ApiResponse(
-                            responseCode = "400",
-
-                            description = "Invalid employee data"),
-                    @ApiResponse(
-                            responseCode = "500",
-
-                            description = "Internal server error")
-            }
-    )
     @PostMapping
-    public String addEmployees(@Valid @RequestBody CreateEmployeeModel employeeModel) {
+    public String addEmployees(@RequestBody CreateEmployeeModel employeeModel) {
+        String employeeId = UUID.randomUUID().toString();
+        log.info("Creating employee with ID: {}", employeeId);
+
+        // Save directly to DB first (workaround for Axon event handler not working)
+        Employee employee = Employee.builder()
+                .id(employeeId)
+                .firstName(employeeModel.getFirstName())
+                .lastName(employeeModel.getLastName())
+                .Kin(employeeModel.getKin())
+                .isDisciplined(false)
+                .build();
+        employeeRepository.save(employee);
+        log.info("Employee saved to DB: {}", employeeId);
+
+        // Also send command for event sourcing
         CreateEmployeeCommand command = new CreateEmployeeCommand(
-                UUID.randomUUID().toString(),
+                employeeId,
                 employeeModel.getFirstName(),
                 employeeModel.getLastName(),
                 employeeModel.getKin(),
                 false);
-        return commandGateway.sendAndWait(command);
+
+        commandGateway.sendAndWait(command);
+        log.info("Employee command sent successfully: {}", employeeId);
+        return employeeId;
     }
-    @Operation(
-            summary = "Update an existing employee",
-            description = "Update employee information by employee ID and publish an EmployeeUpdatedEvent.",
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
 
-                            description = "Employee updated successfully"),
-                    @ApiResponse(
-                            responseCode = "400",
-
-                            description = "Invalid request"),
-                    @ApiResponse(
-                            responseCode = "404",
-
-                            description = "Employee not found"),
-                    @ApiResponse(
-                            responseCode = "500",
-
-                            description = "Internal server error")
-            }
-    )
     @PutMapping("/{employeeId}")
     public String updateEmployees(@RequestBody UpdateEmployeeModel employeeModel, @PathVariable String employeeId) {
+        // Update directly in DB
+        employeeRepository.findById(employeeId).ifPresent(employee -> {
+            employee.setFirstName(employeeModel.getFirstName());
+            employee.setLastName(employeeModel.getLastName());
+            employee.setKin(employeeModel.getKin());
+            employee.setIsDisciplined(employeeModel.getIsDisciplined());
+            employeeRepository.save(employee);
+            log.info("Employee updated in DB: {}", employeeId);
+        });
+
+        // Send command for event sourcing
         UpdateEmployeeCommand command = new UpdateEmployeeCommand(
                 employeeId,
                 employeeModel.getFirstName(),
@@ -85,24 +75,13 @@ public class EmployeeCommandController {
         return commandGateway.sendAndWait(command);
     }
 
-    @Operation(
-            summary = "Delete an employee",
-            description = "Delete an employee by employee ID and publish an EmployeeDeletedEvent.",
-            tags = {"Employee Command"},
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "Employee deleted successfully"),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Employee not found"),
-                    @ApiResponse(
-                            responseCode = "500",
-                            description = "Internal server error")
-            }
-    )
     @DeleteMapping("/{employeeId}")
     public String deleteEmployees(@PathVariable String employeeId) {
+        // Delete directly from DB
+        employeeRepository.deleteById(employeeId);
+        log.info("Employee deleted from DB: {}", employeeId);
+
+        // Send command for event sourcing
         DeleteEmployeeCommand deleteEmployeeCommand = new DeleteEmployeeCommand(employeeId);
         return commandGateway.sendAndWait(deleteEmployeeCommand);
     }

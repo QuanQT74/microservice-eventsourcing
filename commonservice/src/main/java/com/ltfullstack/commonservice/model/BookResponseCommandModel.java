@@ -17,4 +17,6 @@ public class BookResponseCommandModel {
     private  String author;
 
     private  Boolean isReady;
+
+    private String imageUrl;
 }

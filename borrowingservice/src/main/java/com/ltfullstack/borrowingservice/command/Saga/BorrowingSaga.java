@@ -64,8 +64,8 @@ public class BorrowingSaga {
                 throw new Exception("Nhân Viên Kĩ Luật ");
             }
             else {
-                log.info("Đã Mượn Sách Thành Công ");
-                SagaLifecycle.end();
+                log.info("Da Muon Sach Thanh Cong - KHONG end saga, cho doi return");
+                // KHONG end saga - tiep tuc de xu ly return
             }
         }catch (Exception ex){
             roolbackBookStatus(event.getBookId(),event.getEmployeeId(),event.getBorrwingId());
@@ -85,13 +85,9 @@ public class BorrowingSaga {
         commandGateway.sendAndWait(bookRollBackStatusCommand);
     }
 
-    @SagaEventHandler(associationProperty = "bookId")
-    private void handle(BookUpadateStatusEvent event){
-        log.info("BookRollBackStatusCommand in saga for BookId" + event.getBookId());
-        rollbackBrroowingRecord(event.getBorrwingId());
-    }
+    // BookUpadateStatusEvent handled by Handle() above
 
-    @SagaEventHandler(associationProperty = "id")
+    @SagaEventHandler(associationProperty = "bookId")
     private void handle(BorrowingReturnedEvent event) {
         log.info("Return book - updating book status to AVAILABLE for BookId: " + event.getBookId());
 

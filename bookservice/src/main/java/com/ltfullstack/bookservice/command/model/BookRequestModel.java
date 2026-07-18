@@ -24,4 +24,5 @@ public class BookRequestModel {
 
     private  Boolean isReady;
 
+    private String imageUrl;
 }

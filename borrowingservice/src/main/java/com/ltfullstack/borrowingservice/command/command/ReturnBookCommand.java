@@ -14,7 +14,7 @@ import java.util.Date;
 public class ReturnBookCommand {
     ////TẠO MỚI - Command cho việc trả sách
     @TargetAggregateIdentifier
-    private String Id;
+    private String id;
 
     private String bookId;
 

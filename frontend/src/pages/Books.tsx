@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, BookOpen, Sparkles, Filter, X } from "lucide-react";
+import { Search, BookOpen, Sparkles, X } from "lucide-react";
 import { booksApi } from "@/api/books";
 import BookCard from "@/components/books/BookCard";
 import PageHeader from "@/components/shared/PageHeader";
@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 export default function Books() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "available" | "borrowed">("all");
-  const [showFilters, setShowFilters] = useState(false);
 
   const { data: books = [], isLoading, isError, error } = useQuery({
     queryKey: ["books"],

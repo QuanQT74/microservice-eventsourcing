@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, BookMarked, User, Loader2, CheckCircle2, Clock, Calendar, Info } from "lucide-react";
+import { ArrowLeft, BookMarked, User, Loader2, CheckCircle2, Clock, Info } from "lucide-react";
 import { toast } from "sonner";
 import { booksApi } from "@/api/books";
 import { borrowingApi } from "@/api/borrowing";
 import { useUser } from "@/context/UserContext";
-import { saveBorrowing } from "@/lib/borrowings-storage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import EmptyState from "@/components/shared/EmptyState";
-import PageHeader from "@/components/shared/PageHeader";
 
 export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
@@ -28,26 +26,22 @@ export default function BookDetail() {
   });
 
   const borrowMutation = useMutation({
-    mutationFn: () =>
-      borrowingApi.create({ bookId: id!, employeeId: employeeId! }),
-    onSuccess: (borrowingId) => {
-      saveBorrowing({
-        id: borrowingId,
-        bookId: id!,
-        bookName: book!.name,
-        bookAuthor: book!.author,
-        employeeId: employeeId!,
-        borrowedDate: new Date().toISOString().split("T")[0],
-        status: "ACTIVE",
-      });
+    mutationFn: () => {
+      console.log("[BookDetail] Borrowing - bookId:", id, "employeeId:", employeeId);
+      return borrowingApi.create({ bookId: id!, employeeId: employeeId! });
+    },
+    onSuccess: () => {
+      console.log("[BookDetail] Borrow success!");
       setBorrowed(true);
       queryClient.invalidateQueries({ queryKey: ["books"] });
       queryClient.invalidateQueries({ queryKey: ["book", id] });
+      queryClient.invalidateQueries({ queryKey: ["my-borrowings"] });
       toast.success("Book borrowed successfully!", {
         description: `"${book?.name}" has been added to your borrowings.`,
       });
     },
     onError: (err: Error) => {
+      console.error("[BookDetail] Borrow error:", err);
       toast.error("Borrowing failed", { description: err.message });
     },
   });

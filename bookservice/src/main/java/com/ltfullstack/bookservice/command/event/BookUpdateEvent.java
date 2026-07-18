@@ -17,4 +17,5 @@ public class BookUpdateEvent {
 
     Boolean isReady;
 
+    String imageUrl;
 }

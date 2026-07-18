@@ -2,24 +2,50 @@ package com.ltfullstack.bookservice.command.data;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "book")
-@Getter
-@Setter
-@AllArgsConstructor
+@Data
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Book {
     @Id
-    private  String id;
+    private String id;
 
-    private  String name;
+    @Column(name = "name")
+    private String name;
 
-    private  String author;
+    @Column(name = "author")
+    private String author;
 
-    private   Boolean isReady;
+    @Column(name = "is_ready")
+    private Boolean isReady;
 
+    @Column(name = "isbn")
+    private String isbn;
+
+    @Column(name = "total_copies")
+    private Integer totalCopies;
+
+    @Column(name = "available_copies")
+    private Integer availableCopies;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "publisher")
+    private String publisher;
+
+    @Column(name = "published_year")
+    private Integer publishedYear;
+
+    @Column(name = "genre")
+    private String genre;
 }

@@ -34,6 +34,8 @@ public class BookAggregate {
 
     Boolean isReady;
 
+    String imageUrl;
+
     @CommandHandler
     public BookAggregate(CreateCommandBook command){
         BookCreatedEvent bookCreatedEvent = new BookCreatedEvent();
@@ -80,6 +82,7 @@ public class BookAggregate {
         this.name = event.getName();
         this.author = event.getAuthor();
         this.isReady = event.getIsReady();
+        this.imageUrl = event.getImageUrl();
     }
 
     @EventSourcingHandler
@@ -88,6 +91,7 @@ public class BookAggregate {
         this.name = event.getName();
         this.author = event.getAuthor();
         this.isReady = event.getIsReady();
+        this.imageUrl = event.getImageUrl();
     }
     @EventSourcingHandler
     public void on(BookDeleteEvent event){

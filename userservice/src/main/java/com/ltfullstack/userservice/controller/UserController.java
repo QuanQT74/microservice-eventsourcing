@@ -34,6 +34,15 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Operation(summary = "Register a new user")
+    @ApiResponse(responseCode = "201", description = "User registered successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid input")
+    @PostMapping("/register")
+    public ResponseEntity<UserResponse> registerUser(@Valid @RequestBody CreateUserRequest request) {
+        UserResponse response = userService.createUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     @Operation(summary = "Get all users")
     @ApiResponse(responseCode = "200", description = "List of users")
     @GetMapping
@@ -54,6 +63,15 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable String id) {
         UserResponse response = userService.getUserById(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Get current user info")
+    @ApiResponse(responseCode = "200", description = "User info retrieved")
+    @ApiResponse(responseCode = "401", description = "Unauthorized")
+    @GetMapping("/me/{username}")
+    public ResponseEntity<UserResponse> getCurrentUser(@PathVariable String username) {
+        UserResponse response = userService.getUserByUsername(username);
         return ResponseEntity.ok(response);
     }
 

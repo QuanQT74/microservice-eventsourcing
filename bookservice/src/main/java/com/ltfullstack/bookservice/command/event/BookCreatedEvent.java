@@ -17,4 +17,5 @@ public class BookCreatedEvent {
 
     Boolean isReady;
 
+    String imageUrl;
 }

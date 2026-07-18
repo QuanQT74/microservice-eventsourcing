@@ -13,6 +13,7 @@ public interface UserService {
     List<UserResponse> getAllUsers();
     List<UserResponse> getAllUsersByStatus(Boolean isActive);
     UserResponse getUserById(String id);
+    UserResponse getUserByUsername(String username);
     UserResponse updateUser(String id, UpdateUserRequest request);
     void deleteUser(String id);
     TokenResponse login(LoginRequestDto dto);

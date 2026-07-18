@@ -9,13 +9,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateEmployeeModel {
-    @NotBlank(message = "First name is madatory")
+    @NotBlank(message = "First name is required")
     private String firstName;
 
-    @NotBlank(message = "Last name is madatory")
+    @NotBlank(message = "Last name is required")
     private String lastName;
 
-    @NotBlank(message = "Kin is madatory")
-    private String Kin;
-
+    @NotBlank(message = "Kin is required")
+    private String kin;
 }

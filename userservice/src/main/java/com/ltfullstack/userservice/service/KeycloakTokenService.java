@@ -16,14 +16,11 @@ public class KeycloakTokenService {
     @Value("${idp.url}")
     private String idpUrl;
 
-    @Value("${idp.realm}")
-    private String realm;
+    @Value("${keycloak.admin.username:admin}")
+    private String adminUsername;
 
-    @Value("${idp.client-id}")
-    private String clientId;
-
-    @Value("${idp.client-secret}")
-    private String clientSecret;
+    @Value("${keycloak.admin.password:admin}")
+    private String adminPassword;
 
     public String getAccessToken() {
         RestTemplate restTemplate = new RestTemplate();
@@ -32,14 +29,16 @@ public class KeycloakTokenService {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("grant_type", "client_credentials");
-        body.add("client_id", clientId);
-        body.add("client_secret", clientSecret);
+        body.add("grant_type", "password");
+        body.add("client_id", "admin-cli");
+        body.add("username", adminUsername);
+        body.add("password", adminPassword);
         body.add("scope", "openid");
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
-        String url = idpUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+        // Use master realm for admin access
+        String url = idpUrl + "/realms/master/protocol/openid-connect/token";
         ResponseEntity<TokenResponse> response = restTemplate.exchange(
                 url,
                 HttpMethod.POST,
@@ -47,7 +46,7 @@ public class KeycloakTokenService {
                 TokenResponse.class
         );
 
-        log.info("TOKEN RESPONSE: {}", response.getBody());
+        log.info("ADMIN TOKEN obtained successfully");
         return response.getBody().getAccessToken();
     }
 }
