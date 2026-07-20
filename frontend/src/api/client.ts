@@ -35,7 +35,7 @@ export async function apiFetch<T>(
     let message = `Request failed (${response.status})`;
     try {
       const body = await response.json();
-      message = body.message ?? body.meessage ?? JSON.stringify(body);
+      message = body.error ?? body.message ?? body.meessage ?? JSON.stringify(body);
     } catch {
       // ignore parse errors
     }

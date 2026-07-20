@@ -57,6 +57,15 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    @Operation(summary = "Get user by employeeId")
+    @ApiResponse(responseCode = "200", description = "User found")
+    @ApiResponse(responseCode = "404", description = "User not found")
+    @GetMapping("/by-employee/{employeeId}")
+    public ResponseEntity<UserResponse> getUserByEmployeeId(@PathVariable String employeeId) {
+        UserResponse response = userService.getUserByEmployeeId(employeeId);
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(summary = "Get user by ID")
     @ApiResponse(responseCode = "200", description = "User found")
     @ApiResponse(responseCode = "404", description = "User not found")
@@ -94,6 +103,20 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/employee-id")
+    public ResponseEntity<String> getEmployeeId(@PathVariable String id) {
+        return ResponseEntity.ok(userService.getEmployeeId(id));
+    }
+
+    @Operation(summary = "Fix memberCode for existing user")
+    @ApiResponse(responseCode = "200", description = "MemberCode fixed successfully")
+    @ApiResponse(responseCode = "404", description = "User not found")
+    @PatchMapping("/{id}/fix-membercode")
+    public ResponseEntity<UserResponse> fixMemberCode(@PathVariable String id) {
+        UserResponse response = userService.fixMemberCode(id);
+        return ResponseEntity.ok(response);
     }
 
 }

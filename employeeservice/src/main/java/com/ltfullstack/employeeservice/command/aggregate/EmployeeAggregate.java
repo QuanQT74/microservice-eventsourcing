@@ -33,6 +33,8 @@ public class EmployeeAggregate {
     private Boolean isDisciplined;
 
     //Add
+    private String memberCode;
+
     @CommandHandler
     public EmployeeAggregate(CreateEmployeeCommand createEmployeeCommand){
         EmployeeCreatedEvent employeeCreatedEvent = new EmployeeCreatedEvent();
@@ -48,6 +50,7 @@ public class EmployeeAggregate {
         this.isDisciplined = event.getIsDisciplined();
         this.lastName = event.getLastName();
         this.Kin = event.getKin();
+        this.memberCode = event.getMemberCode();
     }
 
     //Update

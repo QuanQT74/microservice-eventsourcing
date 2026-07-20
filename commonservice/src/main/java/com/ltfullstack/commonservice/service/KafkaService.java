@@ -12,8 +12,8 @@ public class KafkaService {
     private final KafkaTemplate<String,String> kafkaTemplate;
 
 
-    public void sendMessage(String Topic , String message){
-        kafkaTemplate.send(Topic,message);
-        log.debug("Message send topic: "+Topic);
+    public void sendMessage(String topic, String message) {
+        kafkaTemplate.send(topic, message);
+        log.info("Message sent topic={} payloadLen={}", topic, message != null ? message.length() : 0);
     }
 }

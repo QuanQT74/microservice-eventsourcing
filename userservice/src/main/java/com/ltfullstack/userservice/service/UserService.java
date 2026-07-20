@@ -14,7 +14,10 @@ public interface UserService {
     List<UserResponse> getAllUsersByStatus(Boolean isActive);
     UserResponse getUserById(String id);
     UserResponse getUserByUsername(String username);
+    UserResponse getUserByEmployeeId(String employeeId);
     UserResponse updateUser(String id, UpdateUserRequest request);
     void deleteUser(String id);
     TokenResponse login(LoginRequestDto dto);
+    UserResponse fixMemberCode(String id);
+    String getEmployeeId(String id);
 }

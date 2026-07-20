@@ -15,8 +15,10 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
+import org.axonframework.modelling.command.AggregateCreationPolicy;
 import org.axonframework.modelling.command.AggregateIdentifier;
 import org.axonframework.modelling.command.AggregateLifecycle;
+import org.axonframework.modelling.command.CreationPolicy;
 import org.axonframework.spring.stereotype.Aggregate;
 import org.springframework.beans.BeanUtils;
 
@@ -61,7 +63,12 @@ public class BookAggregate {
         AggregateLifecycle.apply(bookDeleteEvent);
     }
 
+    /**
+     * CREATE_IF_MISSING: sách có trong MySQL nhưng chưa có trong Event Store
+     * (seed cũ / Axon reset) vẫn cập nhật được status qua Saga.
+     */
     @CommandHandler
+    @CreationPolicy(AggregateCreationPolicy.CREATE_IF_MISSING)
     public void handle(UpdateStatusBookCommand updateStatusBookCommand){
         BookUpadateStatusEvent statusEvent = new BookUpadateStatusEvent();
         BeanUtils.copyProperties(updateStatusBookCommand,statusEvent);
@@ -69,12 +76,13 @@ public class BookAggregate {
         AggregateLifecycle.apply(statusEvent);
     }
 
-    @CommandHandler void handle(BookRollBackStatusCommand rollBackStatusCommand){
+    @CommandHandler
+    @CreationPolicy(AggregateCreationPolicy.CREATE_IF_MISSING)
+    public void handle(BookRollBackStatusCommand rollBackStatusCommand){
         BookRollBackEvent rollBackEvent = new BookRollBackEvent();
         BeanUtils.copyProperties(rollBackStatusCommand,rollBackEvent);
 
         AggregateLifecycle.apply(rollBackEvent);
-
     }
     @EventSourcingHandler
     public  void on(BookCreatedEvent event){

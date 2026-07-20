@@ -1,6 +1,7 @@
 package com.ltfullstack.employeeservice.query.controller;
 
 import com.ltfullstack.commonservice.model.EmployeeResponseCommandModel;
+import com.ltfullstack.employeeservice.command.data.EmployeeRepository;
 import com.ltfullstack.employeeservice.query.model.EmployeeResponseModel;
 import com.ltfullstack.employeeservice.query.queries.GetAllEmployeeQuery;
 import com.ltfullstack.commonservice.queries.GetDetailEmployeeQuery;
@@ -22,6 +23,9 @@ import java.util.List;
 public class EmployeeQueryController {
     @Autowired
     private QueryGateway queryGateway;
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
     @Operation(
             summary = "Get List Employee",
             description = "Get endpoin for employee with filter",
@@ -65,6 +69,21 @@ public class EmployeeQueryController {
             }
 
     )
+
+    @GetMapping("/by-member-code/{code}")
+    public EmployeeResponseCommandModel getByMemberCode(@PathVariable String code) {
+        return employeeRepository.findByMemberCode(code)
+                .map(emp -> {
+                    EmployeeResponseCommandModel model = new EmployeeResponseCommandModel();
+                    model.setId(emp.getId());
+                    model.setFirstName(emp.getFirstName());
+                    model.setLastName(emp.getLastName());
+                    model.setKin(emp.getKin());
+                    model.setIsDisciplined(emp.getIsDisciplined());
+                    return model;
+                })
+                .orElseThrow(() -> new RuntimeException("Employee not found with memberCode: " + code));
+    }
 
     @GetMapping("/{employeeid}")
     public EmployeeResponseCommandModel getDetailEmployee(@PathVariable String employeeid){

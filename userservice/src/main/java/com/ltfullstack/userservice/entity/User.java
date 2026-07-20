@@ -45,4 +45,7 @@ public class User {
 
     @Column(name = "employee_id")
     private String employeeId;
+
+    @Column(name = "member_code")
+    private String memberCode;
 }

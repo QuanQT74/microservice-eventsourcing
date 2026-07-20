@@ -31,7 +31,8 @@ export interface UserResponse {
   fullName: string;
   isActive: boolean;
   createdAt: string;
-  employeeId: string;
+  memberCode?: string;
+  employeeId?: string;
 }
 
 export async function getUserByUsername(username: string): Promise<UserResponse> {
@@ -43,7 +44,25 @@ export async function getUserByUsername(username: string): Promise<UserResponse>
   if (!response.ok) {
     throw new Error("Failed to get user info");
   }
-  return response.json();
+  const user = await response.json();
+  
+  // Fallback: get employeeId separately if not in response
+  if (!user.employeeId) {
+    try {
+      const empResponse = await fetch(`http://localhost:8085/api/v1/users/${user.id}/employee-id`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      if (empResponse.ok) {
+        user.employeeId = await empResponse.text();
+      }
+    } catch (e) {
+      console.error("[auth] Failed to get employeeId:", e);
+    }
+  }
+  
+  return user;
 }
 
 export function getKeycloakAuthUrl(): string {

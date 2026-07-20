@@ -1,4 +1,4 @@
-package com.ltfullstack.borrowingservice.command.event;
+package com.ltfullstack.commonservice.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,10 +11,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class BorrowingCreatedEvent {
     private String id;
-
     private String bookId;
-
     private String employeeId;
-
-    private Date borrwingDate;
+    private Date borrowingDate;
 }

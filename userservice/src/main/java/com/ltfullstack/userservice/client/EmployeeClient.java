@@ -1,5 +1,6 @@
 package com.ltfullstack.userservice.client;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,35 +18,40 @@ public class EmployeeClient {
     @Value("${employee-service.url}")
     private String employeeServiceUrl;
 
-    public String createEmployee(String firstName, String lastName, String kin) {
+    @Data
+    public static class EmployeeCreateResult {
+        private String id;
+        private String memberCode;
+    }
+
+    public EmployeeCreateResult createEmployee(String firstName, String lastName, String kin) {
         try {
             String url = employeeServiceUrl + "/api/v1/employees";
-            
+
             String requestBody = String.format(
-                "{\"firstName\":\"%s\",\"lastName\":\"%s\",\"kin\":\"%s\"}",
-                firstName, lastName, kin
+                    "{\"firstName\":\"%s\",\"lastName\":\"%s\",\"kin\":\"%s\"}",
+                    firstName, lastName, kin
             );
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
+
             HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
-            
-            ResponseEntity<String> response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                entity,
-                String.class
+
+            ResponseEntity<EmployeeCreateResult> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    EmployeeCreateResult.class
             );
-            
-            String employeeId = response.getBody();
-            log.info("Employee creation response: {}", response.getStatusCode());
-            log.info("Employee ID from response: {}", employeeId);
-            
-            // Wait for Axon to process the event
-            Thread.sleep(500);
-            
-            return employeeId;
+
+            EmployeeCreateResult body = response.getBody();
+            if (body == null || body.getId() == null) {
+                throw new RuntimeException("Employee service returned empty body");
+            }
+            log.info("Employee created: id={}, memberCode={}", body.getId(), body.getMemberCode());
+            Thread.sleep(300);
+            return body;
         } catch (Exception e) {
             log.error("Failed to create employee: {}", e.getMessage());
             throw new RuntimeException("Failed to create employee: " + e.getMessage());
