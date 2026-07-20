@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface EmployeeRepository extends JpaRepository<Employee,String>{
     List<Employee> findAllByIsDisciplined(Boolean isDisciplined);
+    long count();
+    java.util.Optional<Employee> findByMemberCode(String memberCode);
 }

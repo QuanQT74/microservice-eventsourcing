@@ -3,17 +3,18 @@ package com.ltfullstack.bookservice.command.controller;
 import com.ltfullstack.bookservice.command.command.CreateCommandBook;
 import com.ltfullstack.bookservice.command.command.DeleteCommandBook;
 import com.ltfullstack.bookservice.command.command.UpdateCommandBook;
+import com.ltfullstack.bookservice.command.data.Book;
+import com.ltfullstack.bookservice.command.data.BookRepository;
 import com.ltfullstack.bookservice.command.model.BookRequestModel;
+import com.ltfullstack.commonservice.command.UpdateStatusBookCommand;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
-import lombok.experimental.Delegate;
 import lombok.experimental.FieldDefaults;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -25,7 +26,10 @@ import java.util.UUID;
 public class BooKCommandController {
     @Autowired
     CommandGateway commandGateway;
-
+    
+    @Autowired
+    BookRepository bookRepository;
+    
     @Operation(
             summary = "Create a new book",
             description = "Create a new book and publish a BookCreatedEvent to Axon Server.",
@@ -44,8 +48,23 @@ public class BooKCommandController {
     )
     @PostMapping
     public String addBook(@Valid @RequestBody BookRequestModel model){
-        CreateCommandBook command = new CreateCommandBook(UUID.randomUUID().toString(),model.getName(),model.getAuthor(),true, model.getImageUrl());
-        return commandGateway.sendAndWait(command);
+        String bookId = UUID.randomUUID().toString();
+        
+        // Save to DB directly
+        Book book = Book.builder()
+            .id(bookId)
+            .name(model.getName())
+            .author(model.getAuthor())
+            .isReady(true)
+            .imageUrl(model.getImageUrl())
+            .build();
+        bookRepository.save(book);
+        
+        // Send command for event sourcing
+        CreateCommandBook command = new CreateCommandBook(bookId, model.getName(), model.getAuthor(), true, model.getImageUrl());
+        commandGateway.send(command);
+        
+        return bookId;
     }
 
     @Operation(
@@ -70,8 +89,35 @@ public class BooKCommandController {
 
     @PutMapping({"/{bookId}"})
     public String updateBook( @RequestBody BookRequestModel model , @PathVariable String bookId){
-        UpdateCommandBook updateCommonandBook = new UpdateCommandBook(bookId,model.getName(),model.getAuthor(),model.getIsReady(), model.getImageUrl());
-        return commandGateway.sendAndWait(updateCommonandBook);
+        // Update DB directly
+        bookRepository.findById(bookId).ifPresent(book -> {
+            book.setName(model.getName());
+            book.setAuthor(model.getAuthor());
+            book.setIsReady(model.getIsReady());
+            book.setImageUrl(model.getImageUrl());
+            bookRepository.save(book);
+        });
+        
+        // Send command for event sourcing
+        UpdateCommandBook updateCommandBook = new UpdateCommandBook(bookId, model.getName(), model.getAuthor(), model.getIsReady(), model.getImageUrl());
+        commandGateway.send(updateCommandBook);
+        
+        return bookId;
+    }
+    
+    @PostMapping("/update-status/{bookId}")
+    public String updateBookStatus(@PathVariable String bookId, @RequestParam boolean isReady) {
+        // Update DB directly
+        bookRepository.findById(bookId).ifPresent(book -> {
+            book.setIsReady(isReady);
+            bookRepository.save(book);
+        });
+        
+        // Send command for event sourcing
+        UpdateStatusBookCommand command = new UpdateStatusBookCommand(bookId, isReady, null, null);
+        commandGateway.send(command);
+        
+        return bookId;
     }
 
     @Operation(
@@ -92,8 +138,14 @@ public class BooKCommandController {
     )
     @DeleteMapping({"/{bookId}"})
     public String deleteBook(@PathVariable String bookId){
+        // Delete from DB directly
+        bookRepository.deleteById(bookId);
+        
+        // Send command for event sourcing
         DeleteCommandBook deleteCommandBook = new DeleteCommandBook(bookId);
-        return commandGateway.sendAndWait(deleteCommandBook);
+        commandGateway.send(deleteCommandBook);
+        
+        return bookId;
     }
 
 }

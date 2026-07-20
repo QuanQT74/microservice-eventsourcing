@@ -1,175 +1,90 @@
 import { Link } from "react-router-dom";
-import { BookMarked, User, Star, Clock, ImageIcon } from "lucide-react";
-import type { Book } from "@/types";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { BookMarked, Clock } from "lucide-react";
 import { useState } from "react";
+import type { Book } from "@/types";
+import { cn } from "@/lib/utils";
 
 interface BookCardProps {
   book: Book;
 }
 
-const COVER_GRADIENTS = [
-  "from-emerald-600 to-teal-800",
-  "from-indigo-600 to-violet-800",
-  "from-amber-600 to-orange-800",
-  "from-rose-600 to-pink-800",
-  "from-cyan-600 to-blue-800",
-  "from-fuchsia-600 to-purple-800",
+const FALLBACKS = [
+  "from-[#123047] to-[#1B6B5A]",
+  "from-[#1A3A5C] to-[#0F6B8F]",
+  "from-[#2A3A2A] to-[#4A6B3A]",
+  "from-[#3A2A1A] to-[#8B5A2B]",
 ];
 
-const COVER_ACCENTS = [
-  "bg-emerald-400/20",
-  "bg-indigo-400/20",
-  "bg-amber-400/20",
-  "bg-rose-400/20",
-  "bg-cyan-400/20",
-  "bg-fuchsia-400/20",
-];
-
-function getGradient(id: string) {
-  const index = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return {
-    gradient: COVER_GRADIENTS[index % COVER_GRADIENTS.length],
-    accent: COVER_ACCENTS[index % COVER_ACCENTS.length],
-  };
+function fallbackFor(id: string) {
+  const n = id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return FALLBACKS[n % FALLBACKS.length];
 }
 
 export default function BookCard({ book }: BookCardProps) {
-  const { gradient } = getGradient(book.id);
   const [imageError, setImageError] = useState(false);
-
-  const hasImage = book.imageUrl && !imageError;
+  const hasImage = Boolean(book.imageUrl) && !imageError;
 
   return (
-    <Card className="group overflow-hidden border-0 bg-card shadow-md transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10">
-      {/* Cover section */}
-      <div className={`relative h-56 ${hasImage ? '' : `bg-gradient-to-br ${gradient}`}`}>
+    <Link
+      to={`/books/${book.id}`}
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md"
+    >
+      <div className="relative aspect-[3/4] overflow-hidden bg-slate-100">
         {hasImage ? (
-          <>
-            {/* Real book cover image */}
-            <img
-              src={book.imageUrl}
-              alt={book.name}
-              className="h-full w-full object-cover object-top"
-              onError={() => setImageError(true)}
-            />
-            {/* Gradient overlay at bottom */}
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white/80 to-transparent" />
-          </>
+          <img
+            src={book.imageUrl}
+            alt={book.name}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+            onError={() => setImageError(true)}
+          />
         ) : (
-          <>
-            {/* Fallback gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 to-teal-800" />
-            <div className="absolute inset-0 bg-black/10" />
-            <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-emerald-400/20 blur-2xl" />
-            <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-white/10 blur-xl" />
-          </>
+          <div
+            className={cn(
+              "flex h-full w-full flex-col justify-between bg-gradient-to-br p-4 text-white",
+              fallbackFor(book.id)
+            )}
+          >
+            <BookMarked className="h-5 w-5 text-white/70" />
+            <p className="line-clamp-4 text-lg font-bold leading-snug tracking-tight">
+              {book.name}
+            </p>
+          </div>
         )}
 
-        {/* Status badge */}
-        <Badge
-          variant={book.isReady ? "success" : "danger"}
-          className="absolute right-3 top-3 z-20 shadow-lg"
+        <span
+          className={cn(
+            "absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm",
+            book.isReady ? "bg-emerald-600" : "bg-slate-800/85"
+          )}
         >
           {book.isReady ? (
-            <span className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+            <>
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
               Available
-            </span>
+            </>
           ) : (
-            <span className="flex items-center gap-1">
+            <>
               <Clock className="h-3 w-3" />
-              Borrowed
-            </span>
+              On loan
+            </>
           )}
-        </Badge>
-
-        {/* Book title overlay for fallback */}
-        {!hasImage && (
-          <div className="relative z-10 flex h-full flex-col justify-between p-5">
-            <div className="flex items-start justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
-                <BookMarked className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex items-center gap-1 rounded-full bg-white/20 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                <Star className="h-3 w-3 fill-current" />
-                4.8
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="line-clamp-2 text-lg font-bold leading-tight text-white drop-shadow-md">
-                {book.name}
-              </p>
-              <div className="flex items-center gap-1.5 text-sm text-white/90">
-                <User className="h-3.5 w-3.5" />
-                {book.author}
-              </div>
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <ImageIcon className="h-16 w-16 text-white/20" />
-            </div>
-          </div>
-        )}
+        </span>
       </div>
 
-      {/* Content section */}
-      <CardContent className="p-4">
-        {!hasImage && (
-          <div className="mb-2 flex items-center gap-1.5 text-sm text-white/90">
-            <User className="h-3.5 w-3.5" />
-            {book.author}
-          </div>
-        )}
-        
-        {book.description && (
-          <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
-            {book.description}
-          </p>
-        )}
-
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">ID:</span>
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
-              {book.id.slice(0, 8)}...
-            </code>
-          </div>
-          {book.isReady && (
-            <span className="text-xs font-medium text-green-600">Ready to borrow</span>
+      <div className="flex flex-1 flex-col gap-1 p-3.5">
+        <h3 className="line-clamp-2 text-[15px] font-bold leading-snug tracking-tight text-foreground">
+          {book.name}
+        </h3>
+        <p className="truncate text-sm text-muted-foreground">{book.author}</p>
+        <span
+          className={cn(
+            "mt-auto pt-3 text-xs font-semibold",
+            book.isReady ? "text-primary" : "text-muted-foreground"
           )}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {book.genre && (
-            <Badge variant="outline" className="text-xs">
-              {book.genre}
-            </Badge>
-          )}
-          {book.publishedYear && (
-            <Badge variant="outline" className="text-xs">
-              {book.publishedYear}
-            </Badge>
-          )}
-        </div>
-
-        <div className="mt-3 flex gap-2">
-          <Link to={`/books/${book.id}`} className="flex-1">
-            <Button
-              size="sm"
-              variant={book.isReady ? "gradient" : "outline"}
-              className="w-full"
-              disabled={!book.isReady}
-            >
-              {book.isReady ? "View & Borrow" : "View Details"}
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-
-      {/* Hover reveal bar */}
-      <div className="h-1 w-0 bg-gradient-to-r from-primary to-emerald-500 transition-all duration-500 group-hover:w-full" />
-    </Card>
+        >
+          {book.isReady ? "View & borrow →" : "View details →"}
+        </span>
+      </div>
+    </Link>
   );
 }

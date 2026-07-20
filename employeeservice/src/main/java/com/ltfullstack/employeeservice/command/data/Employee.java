@@ -27,4 +27,7 @@ public class Employee {
 private String Kin;
 
     private Boolean isDisciplined;
+
+    @Column(name = "member_code")
+    private String memberCode;
 }

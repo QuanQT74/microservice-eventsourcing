@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, BookOpen, Sparkles, X } from "lucide-react";
+import { BookOpen, Search, X } from "lucide-react";
 import { booksApi } from "@/api/books";
 import BookCard from "@/components/books/BookCard";
-import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function Books() {
   const [search, setSearch] = useState("");
@@ -21,9 +20,9 @@ export default function Books() {
   });
 
   const filtered = books.filter((book) => {
+    const q = search.toLowerCase();
     const matchesSearch =
-      book.name.toLowerCase().includes(search.toLowerCase()) ||
-      book.author.toLowerCase().includes(search.toLowerCase());
+      book.name.toLowerCase().includes(q) || book.author.toLowerCase().includes(q);
     const matchesFilter =
       filter === "all" ||
       (filter === "available" && book.isReady) ||
@@ -34,158 +33,141 @@ export default function Books() {
   const availableCount = books.filter((b) => b.isReady).length;
   const borrowedCount = books.length - availableCount;
 
-  const clearSearch = () => setSearch("");
-
   return (
-    <div className="space-y-8">
-      {/* Hero Banner */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-emerald-600 to-teal-700 px-6 py-12 text-white shadow-xl sm:px-10 sm:py-16">
-        {/* Decorative elements */}
-        <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-        <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-accent/20 blur-xl" />
-        <div className="absolute right-1/4 top-1/4 h-32 w-32 rounded-full bg-emerald-400/10 blur-3xl" />
-
-        <div className="relative max-w-2xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-medium backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            Digital Library Collection
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl text-balance mb-4">
-            Discover your next great read
+    <div className="space-y-8 animate-in fade-in-0 duration-500">
+      <section className="relative overflow-hidden rounded-[1.75rem] border border-border/60 bg-[#0B1F33] px-6 py-10 text-white sm:px-10 sm:py-12">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-45"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 12% 20%, rgba(0,184,148,0.35), transparent 42%), radial-gradient(circle at 88% 15%, rgba(0,102,255,0.25), transparent 40%)",
+          }}
+        />
+        <div className="relative max-w-2xl space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
+            Catalog
+          </p>
+          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
+            Browse the shelf
           </h1>
-          <p className="text-base text-white/80 sm:text-lg">
-            Browse our catalog, borrow instantly, and manage your books — all in one place.
+          <p className="max-w-lg text-sm text-white/70 sm:text-base">
+            Search the collection, check availability, and borrow in one place.
           </p>
           {!isLoading && !isError && (
-            <div className="mt-6 flex items-center gap-4">
-              <div className="rounded-xl bg-white/15 backdrop-blur-sm px-4 py-2">
-                <span className="text-2xl font-bold">{books.length}</span>
-                <span className="ml-2 text-sm text-white/80">Total Books</span>
+            <div className="flex flex-wrap gap-3 pt-1">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
+                <span className="text-xl font-bold tabular-nums">{books.length}</span>
+                <span className="ml-2 text-xs uppercase tracking-wider text-white/55">titles</span>
               </div>
-              <div className="rounded-xl bg-white/15 backdrop-blur-sm px-4 py-2">
-                <span className="text-2xl font-bold">{availableCount}</span>
-                <span className="ml-2 text-sm text-white/80">Available</span>
+              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
+                <span className="text-xl font-bold tabular-nums">{availableCount}</span>
+                <span className="ml-2 text-xs uppercase tracking-wider text-white/55">available</span>
               </div>
             </div>
           )}
         </div>
       </section>
 
-      {/* Search and Filters */}
-      <div className="space-y-4">
-        <PageHeader 
-          title="Catalog" 
-          description="Search and filter books in our collection"
-        >
-          <div className="flex items-center gap-2">
-            {/* Search input */}
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by title or author..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-11 pl-11 pr-10 rounded-xl"
-              />
-              {search && (
-                <button
-                  onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-muted"
-                >
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              )}
-            </div>
-          </div>
-        </PageHeader>
-
-        {/* Filter buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 rounded-xl bg-muted/50 p-1">
-            {(["all", "available", "borrowed"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={[
-                  "rounded-lg px-4 py-2 text-sm font-medium transition-all",
-                  filter === f
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:bg-background",
-                ].join(" ")}
-              >
-                {f === "all" ? "All Books" : f === "available" ? "Available" : "Borrowed"}
-                {f === "all" && <span className="ml-1.5 text-xs opacity-70">({books.length})</span>}
-                {f === "available" && <span className="ml-1.5 text-xs opacity-70">({availableCount})</span>}
-                {f === "borrowed" && <span className="ml-1.5 text-xs opacity-70">({borrowedCount})</span>}
-              </button>
-            ))}
-          </div>
-          
-          {!isLoading && (
-            <Badge variant="default" className="text-sm px-3 py-1.5">
-              {filtered.length} result{filtered.length !== 1 ? "s" : ""}
-              {search && ` for "${search}"`}
-            </Badge>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search title or author…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-11 rounded-xl border-border/70 bg-white pl-10 pr-10"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
+        </div>
+
+        <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-white p-1">
+          {(
+            [
+              { id: "all" as const, label: "All", count: books.length },
+              { id: "available" as const, label: "Available", count: availableCount },
+              { id: "borrowed" as const, label: "On loan", count: borrowedCount },
+            ]
+          ).map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                "rounded-lg px-3 py-2 text-sm font-semibold transition",
+                filter === f.id
+                  ? "bg-[#0B1F33] text-white"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {f.label}
+              <span className="ml-1.5 tabular-nums opacity-70">{f.count}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Loading state */}
       {isLoading && (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="space-y-3 animate-pulse">
-              <Skeleton className="h-44 w-full rounded-2xl" />
-              <Skeleton className="h-5 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="aspect-[3/4] w-full rounded-2xl" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
             </div>
           ))}
         </div>
       )}
 
-      {/* Error state */}
       {isError && (
         <EmptyState
           icon={<BookOpen className="h-8 w-8" />}
           title="Unable to load books"
           description={
             (error as Error)?.message ??
-            "Make sure the API Gateway (port 8085) and Book Service are running."
+            "Make sure the API Gateway and Book Service are running."
           }
           action={
             <Button variant="outline" onClick={() => window.location.reload()}>
-              Try Again
+              Try again
             </Button>
           }
         />
       )}
 
-      {/* Empty state */}
       {!isLoading && !isError && filtered.length === 0 && (
         <EmptyState
           icon={<BookOpen className="h-8 w-8" />}
           title="No books found"
-          description={search ? "Try a different search term or clear your filters." : "The catalog is empty."}
+          description={
+            search ? "Try another title or author." : "The catalog is empty."
+          }
           action={
             search ? (
-              <Button variant="outline" onClick={clearSearch}>
-                Clear Search
+              <Button variant="outline" onClick={() => setSearch("")}>
+                Clear search
               </Button>
             ) : undefined
           }
         />
       )}
 
-      {/* Books grid */}
       {!isLoading && !isError && filtered.length > 0 && (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((book, index) => (
             <div
               key={book.id}
-              className="animate-in fade-in-0 slide-in-from-bottom-4"
-              style={{ 
-                animationDelay: `${Math.min(index * 50, 300)}ms`,
-                animationFillMode: "backwards" 
+              className="animate-in fade-in-0 slide-in-from-bottom-2"
+              style={{
+                animationDelay: `${Math.min(index * 40, 280)}ms`,
+                animationFillMode: "backwards",
               }}
             >
               <BookCard book={book} />

@@ -19,6 +19,7 @@ export interface Employee {
   lastName: string;
   Kin: string;
   isDisciplined: boolean;
+  memberCode?: string;
 }
 
 export interface BorrowingRequest {

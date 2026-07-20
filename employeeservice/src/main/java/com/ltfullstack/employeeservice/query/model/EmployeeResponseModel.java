@@ -18,4 +18,6 @@ public class EmployeeResponseModel {
     private String Kin;
 
     private Boolean isDisciplined;
+
+    private String memberCode;
 }

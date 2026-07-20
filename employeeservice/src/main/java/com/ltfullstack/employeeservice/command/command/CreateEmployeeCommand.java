@@ -23,4 +23,6 @@ public class CreateEmployeeCommand {
 
     private Boolean isDisciplined;
 
+    private String memberCode;
+
 }

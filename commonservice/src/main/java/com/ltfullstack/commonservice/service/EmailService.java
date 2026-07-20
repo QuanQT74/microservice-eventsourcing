@@ -6,12 +6,10 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.jms.JmsProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.MailSendException;
-import org.springframework.mail.MailSender;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMailMessage;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
@@ -19,16 +17,16 @@ import org.springframework.web.servlet.view.freemarker.FreeMarkerConfig;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystem;
 import java.util.Map;
 
 @Service
 @Slf4j
 public class EmailService {
     @Autowired
-    private   JavaMailSender javaMailSender;
-    @Autowired
-    private MailSender mailSender;
+    private JavaMailSender javaMailSender;
+
+    @Value("${spring.mail.username:}")
+    private String mailFrom;
 
 
     /**
@@ -50,10 +48,13 @@ public class EmailService {
     public void sendMail(String to, String subject, String text, boolean isHtml, File attachment) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper mimeMessageHelper =  new MimeMessageHelper(mimeMessage,true);
+            MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, true);
+            if (mailFrom != null && !mailFrom.isBlank()) {
+                mimeMessageHelper.setFrom(mailFrom);
+            }
             mimeMessageHelper.setTo(to);
             mimeMessageHelper.setSubject(subject);
-            mimeMessageHelper.setText(text,isHtml);
+            mimeMessageHelper.setText(text, isHtml);
 
             ////Nếu có đường dẫn file đính kèm → thêm file vào email.
             if(attachment != null){
@@ -92,10 +93,13 @@ public class EmailService {
             Template template = freeMarkerConfig.getConfiguration().getTemplate(templatename);
             String html = FreeMarkerTemplateUtils.processTemplateIntoString(template,model);
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage,true);
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+            if (mailFrom != null && !mailFrom.isBlank()) {
+                helper.setFrom(mailFrom);
+            }
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(html,true);
+            helper.setText(html, true);
 
             //Nếu có đường dẫn file đính kèm → thêm file vào email.
             if(attachment != null){

@@ -26,5 +26,7 @@ public class UserResponse {
 
     private LocalDateTime updatedAt;
 
+    private String memberCode;
+
     private String employeeId;
 }

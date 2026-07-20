@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.ltfullstack.userservice.dto.identity.Credential;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,6 +50,13 @@ public class UserServiceImpl implements UserService {
     @Value("${idp.client-secret}")
     @NonFinal
     String clientSecret;
+
+    @Value("${employee-service.url}")
+    @NonFinal
+    String employeeServiceUrl;
+
+    @Autowired
+    RestTemplate restTemplate;
 
     @Override
     public UserResponse createUser(CreateUserRequest request) {
@@ -118,15 +126,17 @@ public class UserServiceImpl implements UserService {
         String keycloakUserId = location.substring(location.lastIndexOf("/") + 1);
         log.info("Keycloak user ID: {}", keycloakUserId);
 
-        // Tạo Employee tự động
-        String employeeId;
+        // Tạo Employee tự động — lưu cả UUID (employeeId) và memberCode
+        String memberCode;
+        String employeeId = null;
         try {
-            String employeeIdFromService = employeeClient.createEmployee(firstName, lastName, keycloakUserId);
-            employeeId = employeeIdFromService;
-            log.info("Employee created with ID: {}", employeeId);
+            var created = employeeClient.createEmployee(firstName, lastName, keycloakUserId);
+            employeeId = created.getId();
+            memberCode = created.getMemberCode();
+            log.info("Employee created with id={}, memberCode={}", employeeId, memberCode);
         } catch (Exception e) {
-            log.error("Failed to create employee, using keycloakUserId as fallback: {}", e.getMessage());
-            employeeId = keycloakUserId; // Fallback
+            log.error("Failed to create employee, generating fallback code: {}", e.getMessage());
+            memberCode = "EMP" + System.currentTimeMillis() % 10000;
         }
         
         User user = User.builder()
@@ -137,18 +147,19 @@ public class UserServiceImpl implements UserService {
                 .fullName(request.getFullName())
                 .isActive(true)
                 .employeeId(employeeId)
+                .memberCode(memberCode)
                 .build();
 
         try {
             User savedUser = userRepository.save(user);
             log.info("=== USER SAVED SUCCESS ===");
-            log.info("User saved to local DB with ID: {} and employeeId: {}", savedUser.getId(), employeeId);
+            log.info("User saved to local DB with ID: {} and memberCode: {}", savedUser.getId(), memberCode);
             return mapToResponse(savedUser);
         } catch (Exception e) {
             log.error("=== USER SAVE FAILED ===");
             log.error("Error saving user: {}", e.getMessage());
-            log.error("User data: id={}, username={}, email={}, employeeId={}", 
-                keycloakUserId, sanitizedUsername, request.getEmail(), employeeId);
+            log.error("User data: id={}, username={}, email={}, memberCode={}", 
+                keycloakUserId, sanitizedUsername, request.getEmail(), memberCode);
             throw new RuntimeException("Failed to save user to database: " + e.getMessage(), e);
         }
     }
@@ -179,9 +190,27 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public UserResponse getUserByEmployeeId(String employeeId) {
+        User user = userRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new RuntimeException("User not found with employeeId: " + employeeId));
+        return mapToResponse(user);
+    }
+
+    @Override
+    @Transactional
     public UserResponse getUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+        // Backfill employeeId nếu account cũ chỉ có memberCode
+        if ((user.getEmployeeId() == null || user.getEmployeeId().isBlank())
+                && user.getMemberCode() != null) {
+            try {
+                getEmployeeId(user.getId());
+                user = userRepository.findById(user.getId()).orElse(user);
+            } catch (Exception ignored) {
+                // keep response without employeeId
+            }
+        }
         return mapToResponse(user);
     }
 
@@ -229,6 +258,56 @@ public class UserServiceImpl implements UserService {
         return authClient.login(formData);
     }
 
+    @Override
+    public UserResponse fixMemberCode(String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        String keycloakUserId = user.getId();
+        try {
+            var created = employeeClient.createEmployee(
+                    user.getFullName().split("\\s+")[0],
+                    user.getFullName().contains(" ") ? user.getFullName().substring(user.getFullName().indexOf(" ") + 1).trim() : user.getFullName(),
+                    keycloakUserId
+            );
+            user.setEmployeeId(created.getId());
+            user.setMemberCode(created.getMemberCode());
+            log.info("Employee linked: id={}, memberCode={}", created.getId(), created.getMemberCode());
+        } catch (Exception e) {
+            log.error("Failed to create employee: {}", e.getMessage());
+            throw new RuntimeException("Failed to fix memberCode: " + e.getMessage(), e);
+        }
+
+        User savedUser = userRepository.save(user);
+        return mapToResponse(savedUser);
+    }
+
+    @Override
+    public String getEmployeeId(String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        if (user.getEmployeeId() != null && !user.getEmployeeId().isBlank()) {
+            return user.getEmployeeId();
+        }
+        // Legacy: chỉ có memberCode → resolve UUID từ employee service rồi backfill
+        if (user.getMemberCode() != null && !user.getMemberCode().isBlank()) {
+            try {
+                String url = employeeServiceUrl + "/api/v1/employees/by-member-code/" + user.getMemberCode();
+                var emp = restTemplate.getForObject(url, java.util.Map.class);
+                if (emp != null && emp.get("id") != null) {
+                    String employeeId = String.valueOf(emp.get("id"));
+                    user.setEmployeeId(employeeId);
+                    userRepository.save(user);
+                    log.info("Backfilled employeeId={} for user {}", employeeId, id);
+                    return employeeId;
+                }
+            } catch (Exception e) {
+                log.warn("Could not resolve employeeId from memberCode {}: {}", user.getMemberCode(), e.getMessage());
+            }
+        }
+        return user.getEmployeeId();
+    }
+
     private UserResponse mapToResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -238,6 +317,7 @@ public class UserServiceImpl implements UserService {
                 .isActive(user.getIsActive())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .memberCode(user.getMemberCode())
                 .employeeId(user.getEmployeeId())
                 .build();
     }

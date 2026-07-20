@@ -3,10 +3,17 @@ package com.ltfullstack.borrowingservice.command.controller;
 import com.ltfullstack.borrowingservice.command.command.CreateBorrowingCommand;
 import com.ltfullstack.borrowingservice.command.command.DeleteBorrowingCommand;
 import com.ltfullstack.borrowingservice.command.command.ReturnBookCommand;
+import com.ltfullstack.borrowingservice.command.data.Borrowing;
+import com.ltfullstack.borrowingservice.command.data.BorrowingRepository;
 import com.ltfullstack.borrowingservice.command.model.BorrowingRequestModel;
 import com.ltfullstack.borrowingservice.command.model.ReturnBookRequestModel;
+import com.ltfullstack.commonservice.command.UpdateStatusBookCommand;
+import com.ltfullstack.commonservice.model.BookResponseCommandModel;
+import com.ltfullstack.commonservice.queries.GetBookDetailQuery;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.axonframework.messaging.responsetypes.ResponseTypes;
+import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,93 +29,160 @@ import java.util.UUID;
 public class BorrowingCommandController {
     @Autowired
     private CommandGateway commandGateway;
-    
+
+    @Autowired
+    private QueryGateway queryGateway;
+
+    @Autowired
+    private BorrowingRepository borrowingRepository;
+
     @GetMapping("/test")
     public ResponseEntity<?> test() {
         return ResponseEntity.ok("OK - Borrowing service is running");
     }
-    
+
     @PostMapping
-    public ResponseEntity<?> createBorrowing(@RequestBody BorrowingRequestModel model){
-        System.out.println("=== RAW BODY ===");
-        System.out.println("model = " + model);
-        System.out.flush();
-        
+    public ResponseEntity<?> createBorrowing(@RequestBody BorrowingRequestModel model) {
+        log.info("=== CREATE BORROWING (Saga) === bookId={}, employeeId={}",
+                model.getBookId(), model.getEmployeeId());
+
         try {
-            if (model == null) {
-                return ResponseEntity.badRequest().body("Request body is null");
-            }
-            
-            System.out.println("Parsed model: bookId=" + model.getBookId() + ", employeeId=" + model.getEmployeeId());
-            System.out.flush();
-            
             if (model.getBookId() == null || model.getEmployeeId() == null) {
-                return ResponseEntity.badRequest().body("bookId and employeeId are required");
+                return ResponseEntity.badRequest().body(java.util.Map.of(
+                        "success", false,
+                        "error", "bookId and employeeId are required"
+                ));
             }
-            
+
+            // Chặn mượn trùng: user đã đang giữ sách này
+            if (borrowingRepository.existsByEmployeeIdAndBookIdAndStatus(
+                    model.getEmployeeId(), model.getBookId(), "BORROWED")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of(
+                        "success", false,
+                        "error", "You already have this book on loan. Return it before borrowing again."
+                ));
+            }
+
+            // Chặn mượn khi sách đang được người khác (hoặc chính mình) giữ
+            if (borrowingRepository.existsByBookIdAndStatus(model.getBookId(), "BORROWED")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of(
+                        "success", false,
+                        "error", "This book is already borrowed."
+                ));
+            }
+
+            // Kiểm tra isReady từ Book service
+            try {
+                BookResponseCommandModel book = queryGateway
+                        .query(new GetBookDetailQuery(model.getBookId()),
+                                ResponseTypes.instanceOf(BookResponseCommandModel.class))
+                        .join();
+                if (book == null || !Boolean.TRUE.equals(book.getIsReady())) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of(
+                            "success", false,
+                            "error", "This book is not available."
+                    ));
+                }
+            } catch (Exception ex) {
+                log.warn("Could not query book detail: {}", ex.getMessage());
+                return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(java.util.Map.of(
+                        "success", false,
+                        "error", "Unable to verify book availability. Try again."
+                ));
+            }
+
             String borrowingId = UUID.randomUUID().toString();
-            System.out.println("Creating command with id: " + borrowingId);
-            System.out.flush();
-            
+            Date now = new Date();
+
+            Borrowing borrowing = new Borrowing();
+            borrowing.setId(borrowingId);
+            borrowing.setBookId(model.getBookId());
+            borrowing.setEmployeeId(model.getEmployeeId());
+            borrowing.setBorrwingDate(now);
+            borrowing.setStatus("BORROWED");
+            borrowingRepository.save(borrowing);
+
             CreateBorrowingCommand command = new CreateBorrowingCommand(
                     borrowingId,
                     model.getBookId(),
                     model.getEmployeeId(),
-                    new Date()
+                    now
             );
-            
-            System.out.println("Command created, sending to Axon...");
-            System.out.flush();
-            
-            String result = commandGateway.sendAndWait(command);
-            System.out.println("Command result: " + result);
-            System.out.flush();
-            
-            return ResponseEntity.ok(java.util.Map.of(
+            commandGateway.sendAndWait(command);
+
+            // Đánh dấu sách không sẵn ngay — không đợi Saga async (tránh mượn trùng)
+            try {
+                commandGateway.sendAndWait(new UpdateStatusBookCommand(
+                        model.getBookId(), false, model.getEmployeeId(), borrowingId
+                ));
+            } catch (Exception ex) {
+                log.warn("Sync UpdateStatusBook failed (Saga will retry): {}", ex.getMessage());
+            }
+
+            return ResponseEntity.accepted().body(java.util.Map.of(
                     "success", true,
-                    "borrowingId", result
+                    "borrowingId", borrowingId,
+                    "message", "Borrowing created - Saga orchestrating"
             ));
         } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            System.out.flush();
-            e.printStackTrace();
-            
+            log.error("ERROR creating borrowing: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of(
                     "success", false,
-                    "error", e.getMessage(),
-                    "errorType", e.getClass().getSimpleName()
+                    "error", e.getMessage()
             ));
         }
     }
 
     @PostMapping("/return")
-    public ResponseEntity<?> returnBook(@RequestBody ReturnBookRequestModel request){
-        log.info("=== RETURN REQUEST RECEIVED ===");
-        log.info("request = {}", request);
-        log.info("request.getId() = {}", request != null ? request.getId() : "null");
-        
+    public ResponseEntity<?> returnBook(@RequestBody ReturnBookRequestModel request) {
+        log.info("=== RETURN BOOK (Saga) === borrowingId={}, bookId={}",
+                request.getId(), request.getBookId());
+
         try {
-            String borrowingId = request.getId();
-            log.info("Returning book for borrowingId: {}, bookId: {}", borrowingId, request.getBookId());
-            
+            if (request.getId() == null || request.getBookId() == null) {
+                return ResponseEntity.badRequest().body(java.util.Map.of(
+                        "success", false,
+                        "error", "id and bookId are required"
+                ));
+            }
+
+            Date returnedDate = new Date();
             ReturnBookCommand command = new ReturnBookCommand(
-                    borrowingId,
+                    request.getId(),
                     request.getBookId(),
-                    new Date()
+                    returnedDate
             );
-            
-            String result = commandGateway.sendAndWait(command);
-            log.info("Book returned successfully: {}", result);
-            
+            commandGateway.sendAndWait(command);
+
+            borrowingRepository.findById(request.getId()).ifPresentOrElse(borrowing -> {
+                borrowing.setStatus("RETURNED");
+                borrowing.setReturnData(returnedDate);
+                borrowingRepository.save(borrowing);
+                log.info("Read-model marked RETURNED: {}", request.getId());
+            }, () -> log.warn("Borrowing not found in DB for return: {}", request.getId()));
+
+            // Mở lại sách ngay để có thể mượn tiếp sau khi trả
+            try {
+                commandGateway.sendAndWait(new UpdateStatusBookCommand(
+                        request.getBookId(), true, null, request.getId()
+                ));
+            } catch (Exception ex) {
+                log.warn("Sync UpdateStatusBook (return) failed: {}", ex.getMessage());
+            }
+
             return ResponseEntity.ok(java.util.Map.of(
                     "success", true,
-                    "result", result
+                    "message", "Book returned successfully"
             ));
         } catch (Exception e) {
-            log.error("Error returning book: {}", e.getMessage(), e);
+            log.error("ERROR returning book: {}", e.getMessage(), e);
+            String message = e.getMessage() != null ? e.getMessage() : "Unknown error";
+            if (message.contains("aggregate was not found")) {
+                message = "Borrowing not found in event store. Please borrow again via Saga, then return.";
+            }
             return ResponseEntity.internalServerError().body(java.util.Map.of(
                     "success", false,
-                    "error", e.getMessage()
+                    "error", message
             ));
         }
     }
@@ -117,8 +191,10 @@ public class BorrowingCommandController {
     public ResponseEntity<?> deleteBorrowing(@PathVariable String borrowingId) {
         log.info("Deleting borrowing: {}", borrowingId);
         try {
-            DeleteBorrowingCommand command = new DeleteBorrowingCommand(borrowingId);
-            commandGateway.sendAndWait(command);
+            commandGateway.sendAndWait(new DeleteBorrowingCommand(borrowingId));
+            if (borrowingRepository.existsById(borrowingId)) {
+                borrowingRepository.deleteById(borrowingId);
+            }
             return ResponseEntity.ok(java.util.Map.of("success", true));
         } catch (Exception e) {
             log.error("Error deleting borrowing: {}", e.getMessage(), e);
@@ -128,5 +204,4 @@ public class BorrowingCommandController {
             ));
         }
     }
-
 }

@@ -6,6 +6,7 @@ import com.ltfullstack.employeeservice.command.command.UpdateEmployeeCommand;
 import com.ltfullstack.employeeservice.command.data.Employee;
 import com.ltfullstack.employeeservice.command.data.EmployeeRepository;
 import com.ltfullstack.employeeservice.command.model.CreateEmployeeModel;
+import com.ltfullstack.employeeservice.command.model.EmployeeCreateResponse;
 import com.ltfullstack.employeeservice.command.model.UpdateEmployeeModel;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -25,32 +26,36 @@ public class EmployeeCommandController {
     private EmployeeRepository employeeRepository;
 
     @PostMapping
-    public String addEmployees(@RequestBody CreateEmployeeModel employeeModel) {
+    public EmployeeCreateResponse addEmployees(@RequestBody CreateEmployeeModel employeeModel) {
         String employeeId = UUID.randomUUID().toString();
         log.info("Creating employee with ID: {}", employeeId);
 
-        // Save directly to DB first (workaround for Axon event handler not working)
+        long count = employeeRepository.count() + 1;
+        String memberCode = String.format("EMP%03d", count);
+        log.info("Generated member code: {}", memberCode);
+
         Employee employee = Employee.builder()
                 .id(employeeId)
                 .firstName(employeeModel.getFirstName())
                 .lastName(employeeModel.getLastName())
                 .Kin(employeeModel.getKin())
                 .isDisciplined(false)
+                .memberCode(memberCode)
                 .build();
         employeeRepository.save(employee);
         log.info("Employee saved to DB: {}", employeeId);
 
-        // Also send command for event sourcing
         CreateEmployeeCommand command = new CreateEmployeeCommand(
                 employeeId,
                 employeeModel.getFirstName(),
                 employeeModel.getLastName(),
                 employeeModel.getKin(),
-                false);
+                false,
+                memberCode);
 
         commandGateway.sendAndWait(command);
         log.info("Employee command sent successfully: {}", employeeId);
-        return employeeId;
+        return new EmployeeCreateResponse(employeeId, memberCode);
     }
 
     @PutMapping("/{employeeId}")

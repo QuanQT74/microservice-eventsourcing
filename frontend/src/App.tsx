@@ -8,6 +8,16 @@ import Profile from "@/pages/Profile";
 import Welcome from "@/pages/Welcome";
 import { getToken } from "@/context/UserContext";
 import { Loader2 } from "lucide-react";
+import { parseJwt } from "@/api/auth";
+
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false;
+  const payload = parseJwt(token);
+  if (!payload) return false;
+  // Check if token is expired (exp is in seconds)
+  const now = Date.now() / 1000;
+  return (payload.exp || 0) > now;
+}
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
@@ -25,7 +35,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!token) {
+  // Check if token exists AND is valid (not expired)
+  if (!token || !isTokenValid(token)) {
+    // Clear invalid token from storage
+    if (token && !isTokenValid(token)) {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("library_member_id");
+      localStorage.removeItem("library_user_email");
+    }
     return <Navigate to="/welcome" replace />;
   }
 

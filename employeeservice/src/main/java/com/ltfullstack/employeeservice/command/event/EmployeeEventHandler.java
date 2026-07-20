@@ -1,5 +1,6 @@
 package com.ltfullstack.employeeservice.command.event;
 
+import com.ltfullstack.commonservice.event.BorrowingCreatedEvent;
 import com.ltfullstack.employeeservice.command.data.Employee;
 import com.ltfullstack.employeeservice.command.data.EmployeeRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -49,5 +50,10 @@ public class EmployeeEventHandler {
         }catch (Exception ex){
             log.error("Error deleting employee: {}", ex.getMessage());
         }
+    }
+
+    @EventHandler
+    public void on(BorrowingCreatedEvent event){
+        log.info("BorrowingCreatedEvent received: borrowingId={}, employeeId={}", event.getId(), event.getEmployeeId());
     }
 }

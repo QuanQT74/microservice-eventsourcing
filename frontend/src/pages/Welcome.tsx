@@ -33,21 +33,36 @@ export default function Welcome() {
       const response = await login(loginData);
       localStorage.setItem("access_token", response.access_token);
       
-      // Get user info to retrieve employeeId
+      // Get user info to retrieve memberCode
       console.log("[Welcome] Login success, getting user info for:", loginData.username);
       const userInfo = await getUserByUsername(loginData.username);
       console.log("[Welcome] User info:", userInfo);
-      
-      if (userInfo.employeeId) {
-        localStorage.setItem("library_member_id", userInfo.employeeId);
-        console.log("[Welcome] EmployeeId saved:", userInfo.employeeId);
-      } else {
-        console.error("[Welcome] No employeeId in userInfo!");
-        toast.error("Error", { description: "Account not linked to employee. Please register as member." });
+
+      // Luôn dùng employeeId (UUID) — không dùng memberCode (EMP001) vì borrowings lưu theo UUID
+      const memberId = userInfo.employeeId || userInfo.memberCode;
+      if (!memberId) {
+        console.error("[Welcome] No employeeId or memberCode in userInfo!");
+        toast.error("Error", {
+          description: "Account not linked to member. Please register again or contact support.",
+        });
         return;
       }
+      if (!userInfo.employeeId) {
+        toast.error("Account needs fix", {
+          description: "Missing employee link. Ask admin to run fix-member for your account.",
+        });
+      }
+      localStorage.setItem("library_member_id", memberId);
+      if (userInfo.email) {
+        localStorage.setItem("library_user_email", userInfo.email);
+      }
+      console.log("[Welcome] library_member_id saved:", memberId);
       
-      toast.success("Login successful!", { description: "Welcome back!" });
+      toast.success("Welcome back", {
+        description: userInfo.email
+          ? `Signed in as ${userInfo.email}`
+          : "You're ready to browse and borrow.",
+      });
       window.location.href = "/";
     } catch (err) {
       console.error("[Welcome] Login error:", err);
@@ -66,7 +81,9 @@ export default function Welcome() {
     setLoading(true);
     try {
       await register(registerData);
-      toast.success("Registration successful!", { description: "Please login with your credentials." });
+      toast.success("Account created", {
+        description: `A welcome email was sent to ${registerData.email}. Sign in to continue.`,
+      });
       setMode("login");
       setLoginData({ username: registerData.username, password: "" });
       setRegisterData({ username: "", email: "", password: "", fullName: "" });
@@ -242,6 +259,9 @@ export default function Welcome() {
                     disabled={loading}
                     className="h-11 rounded-xl border-2 transition-all focus:border-primary"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Used for welcome mail and borrow/return confirmations.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="regPassword" className="text-sm font-semibold">Password</label>
