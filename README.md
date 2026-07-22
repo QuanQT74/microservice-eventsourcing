@@ -1,157 +1,227 @@
-# 📚 Library Management System (Microservices)
+# 📚 <PROJECT_NAME> - Microservice Event Sourcing
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=openjdk" alt="Java 17" />
-  <img src="https://img.shields.io/badge/Spring_Boot-3.x-green?style=for-the-badge&logo=springboot" alt="Spring Boot 3" />
-  <img src="https://img.shields.io/badge/Axon_Framework-4.x-blue?style=for-the-badge&logo=axon" alt="Axon" />
-  <img src="https://img.shields.io/badge/Apache_Kafka-3.x-black?style=for-the-badge&logo=apachekafka" alt="Kafka" />
-  <img src="https://img.shields.io/badge/Keycloak-26.0-red?style=for-the-badge&logo=keycloak" alt="Keycloak" />
-  <img src="https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react" alt="React" />
-</p>
+[![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.java.com/) [![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot) [![Axon Framework](https://img.shields.io/badge/Axon_Framework-FFA500?style=for-the-badge&logoColor=white)](https://www.axoniq.io/) [![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)](https://kafka.apache.org/) [![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/) [![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/) [![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/) [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/) [![Maven](https://img.shields.io/badge/Apache_Maven-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)](https://maven.apache.org/) [![Keycloak](https://img.shields.io/badge/Keycloak-ADD8E6?style=for-the-badge&logo=keycloak&logoColor=black)](https://www.keycloak.org/) [![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)](https://www.postman.com/)
 
----
+## 📋 Tổng Quan Dự Án
 
-## 📖 Tổng quan hệ thống
+<PROJECT_DESCRIPTION>
 
-Hệ thống quản lý thư viện hiện đại được xây dựng dựa trên kiến trúc **Microservices** hướng sự kiện. Dự án áp dụng các triết lý thiết kế nâng cao gồm **Event Sourcing**, **CQRS** và điều phối giao dịch phân tán **Saga Orchestration** thông qua **Axon Framework** kết hợp luồng truyền tin thời gian thực **Apache Kafka**.
+## 🏗️ Kiến Trúc Hệ Thống
 
----
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Client[Client Applications]
+    end
 
-## 🏗️ Sơ đồ Kiến trúc & Luồng dữ liệu
+    subgraph "API Gateway Layer"
+        Gateway[API Gateway<br/>Port: 8080<br/>Rate Limiting & Auth]
+    end
 
-```text
-                                  ┌──────────────────┐
-                                  │  React Dashboard │ (UI - Port 5173)
-                                  └────────┬─────────┘
-                                           │ Request (Port 8085)
-                                           ▼
-                                  ┌──────────────────┐
-                                  │   API Gateway    │ (Spring Cloud Gateway)
-                                  └────────┬─────────┘
-                                           │
-        ┌──────────────────────────────────┼──────────────────────────────────┐
-        ▼ (Port 9001)                      ▼ (Port 9004)                      ▼ (Port 9005)
-┌──────────────┐                  ┌──────────────┐                  ┌────────────────┐
-│ Book Service │                  │ User Service │                  │ Borrow Service │
-└──────┬───────┘                  └──────┬───────┘                  └────────┬───────┘
-       │                                 │ Feign Client                      │
-       │                                 ▼ (Port 9002)                       │
-       │                          ┌──────────────┐                           │
-       │                          │ Employee Svc │                           │
-       │                          └──────┬───────┘                           │
-       └─────────────────────────────────┼───────────────────────────────────┘
-                                         │
-                                         ▼ (Commands / Events)
-                    ┌──────────────────────────────────────────┐
-                    │  Axon Server (Event Store & Command Bus)  │ (Port 8124)
-                    └────────────────────┬─────────────────────┘
-                                         │
-                                         │ Emit Events
-                                         ▼
-                    ┌──────────────────────────────────────────┐
-                    │       Apache Kafka (Message Broker)      │ (Port 9092)
-                    └────────────────────┬─────────────────────┘
-                                         │ Subscribe Event
-                                         ▼
-                    ┌──────────────────────────────────────────┐
-                    │       Notification Service (Email)       │ (Port 9003)
-                    └──────────────────────────────────────────┘
+    subgraph "Service Discovery"
+        Eureka[Eureka Server<br/>Port: 8761]
+    end
+
+    subgraph "Microservices"
+        BookService[Book Service<br/>Port: 9001<br/>CQRS + Event Sourcing]
+        BorrowingService[Borrowing Service<br/>Port: 9003<br/>Saga Orchestration]
+        EmployeeService[Employee Service<br/>Port: 9002<br/>CQRS + Event Sourcing]
+        UserService[User Service<br/>Port: 9005<br/>Authentication]
+        NotificationService[Notification Service<br/>Port: 9003<br/>Email & Kafka Consumer]
+        CommonService[Common Service<br/>Shared Components]
+    end
+
+    subgraph "Event Store & Messaging"
+        AxonServer[Axon Server<br/>Port: 8124<br/>Event Store & Message Router]
+        Kafka[Apache Kafka<br/>Port: 9092<br/>Event Streaming]
+        Zookeeper[Zookeeper<br/>Port: 2181]
+    end
+
+    subgraph "Data Layer"
+        BookDB[(H2 Database<br/>Book Data)]
+        BorrowingDB[(H2 Database<br/>Borrowing Data)]
+        EmployeeDB[(H2 Database<br/>Employee Data)]
+        UserDB[(MySQL Database<br/>User Data)]
+    end
+
+    subgraph "Cache & Infrastructure"
+        Redis[Redis<br/>Port: 6379<br/>Rate Limiting]
+        ControlCenter[Kafka Control Center<br/>Port: 9021]
+    end
+
+    Client --> Gateway
+    Gateway --> Eureka
+    Gateway --> Redis
+    Gateway --> BookService
+    Gateway --> EmployeeService
+    Gateway --> UserService
+
+    BookService --> Eureka
+    BorrowingService --> Eureka
+    EmployeeService --> Eureka
+    UserService --> Eureka
+    NotificationService --> Eureka
+
+    BookService --> AxonServer
+    BorrowingService --> AxonServer
+    EmployeeService --> AxonServer
+    NotificationService --> AxonServer
+
+    BookService --> BookDB
+    BorrowingService --> BorrowingDB
+    EmployeeService --> EmployeeDB
+    UserService --> UserDB
+
+    NotificationService --> Kafka
+    Kafka --> Zookeeper
+    Kafka --> ControlCenter
+
+    BookService -.Event.-&gt; BorrowingService
+    BorrowingService -.Event.-&gt; BookService
+    BorrowingService -.Event.-&gt; EmployeeService
+
+    style Gateway fill:#4CAF50
+    style AxonServer fill:#FF9800
+    style Kafka fill:#2196F3
+    style Redis fill:#F44336
 ```
 
----
+## 🎯 Tính Năng Chính
 
-## 🛠️ Công Nghệ Chủ Đạo
+### 📖 Quản Lý Sách (Book Service)
+- ✅ Tạo, cập nhật, xóa sách
+- ✅ Theo dõi trạng thái sẵn sàng
+- ✅ Rollback khi giao dịch thất bại
 
-### 🧱 Backend Microservices
-*   **Spring Boot 3.x & Cloud**: Nền tảng phát triển dịch vụ & định tuyến API.
-*   **Axon Framework & Server**: Xử lý kiến trúc CQRS, Event Store lưu vết mọi lịch sử biến động dữ liệu, điều phối Saga.
-*   **Apache Kafka**: Streaming tin nhắn bất đồng bộ phục vụ thông báo qua Email.
-*   **Keycloak IAM**: Xác thực & phân quyền tập trung (OAuth2/OIDC).
-*   **Redis**: Cấu hình cơ chế giới hạn lượt gọi (Rate Limiting).
-*   **Cơ sở dữ liệu**: Đa cơ sở dữ liệu (MySQL cho dữ liệu nghiệp vụ, PostgreSQL cho Keycloak).
+### 👥 Quản Lý Nhân Viên (Employee Service)
+- ✅ CRUD nhân viên
+- ✅ Kiểm tra trạng thái kỷ luật
+- ✅ Kiểm tra điều kiện mượn sách
 
-### 🖥️ Frontend Administration
-*   **Vite + React 18 + TypeScript**: Tối ưu tốc độ tải trang và trải nghiệm người dùng.
-*   **Shadcn UI + Tailwind CSS**: Thiết kế giao diện Dashboard trực quan.
-*   **TanStack Query**: Quản lý trạng thái client-side và cache dữ liệu từ API.
+### 📝 Quản Lý Mượn Sách (Borrowing Service)
+- ✅ Tạo phiếu mượn
+- ✅ Saga orchestration để đảm bảo tính nhất quán
+- ✅ Rollback tự động
 
----
+### 🔐 Quản Lý Người Dùng (User Service)
+- ✅ Xác thực, phân quyền
+- ✅ Tích hợp Keycloak OAuth2/JWT
 
-## 📂 Tổng quan về Service
+### 📧 Thông Báo (Notification Service)
+- ✅ Gửi email
+- ✅ Xử lý Kafka events
 
-| Service | Port | Database | Nhiệm vụ chính |
-| :--- | :--- | :--- | :--- |
-| 🛡️ `apigateway` | `8085` | Redis | Điểm truy cập duy nhất, xác thực Token JWT, Rate Limit |
-| 🔍 `discoveryservice` | `8761` | - | Đăng ký và phát hiện dịch vụ tự động (Eureka Server) |
-| ⚡ `axonserver` | `8124` | Axon Store | Lưu trữ Event Log, điều phối command/query |
-| 📚 `bookservice` | `9001` | MySQL | Quản lý danh mục sách (CQRS) |
-| 👥 `userservice` | `9004` | MySQL | Quản lý bạn đọc, tích hợp Keycloak |
-| 💼 `employeeservice` | `9002` | MySQL | Quản lý nhân sự thủ thư |
-| 🔄 `borrowingservice` | `9005` | MySQL | Xử lý mượn/trả sách, điều phối Saga |
-| ✉️ `notificationservice`| `9003` | - | Lắng nghe Kafka event để gửi Email tự động |
-| 🔑 `keycloak` | `8180` | PostgreSQL | Identity Provider quản lý User/Role |
+## 🛠️ Tech Stack
 
----
+- **Spring Boot 3.x**
+- **Java 17**
+- **Axon Framework & Server**
+- **Apache Kafka & Zookeeper**
+- **MySQL / H2**
+- **Keycloak**
+- **Redis**
+- **Docker & Docker Compose**
+- **Kubernetes**
 
-## 🔄 Quy trình Nghiệp vụ Nổi bật
-
-### 🔁 Saga Pattern trong Mượn Sách
-
-Khi người dùng thực hiện mượn sách, một chuỗi giao dịch phân tán (Saga) được kích hoạt để đảm bảo tính nhất quán dữ liệu:
-
-```text
-[BorrowingService]                  [BookService]                   [UserService]
-        │                                 │                               │
-        │── Create Borrowing Request ────>│                               │
-        │                                 │── Reserve Book (Qty - 1) ────>│
-        │                                 │                               │── Check User & Limit ──┐
-        │                                 │                               │                        │
-        │<── APPROVED ────────────────────┴───────────────────────────────┴<───────────────────────┘
-        │
-        ▼ (Publish Kafka event)
-[NotificationService] ──> Send Email Notification
+## 📦 Cấu Trúc Dự Án
+```
+<PROJECT_ROOT>/
+├── apigateway/              # API Gateway
+├── discoverserver/          # Eureka
+├── bookservice/             # Book microservice
+├── borrowingservice/        # Borrowing microservice
+├── employeeservice/         # Employee microservice
+├── userservice/             # User & Auth microservice
+├── notificationservice/     # Notification microservice
+└── commonservice/           # Shared components
 ```
 
-*   **Trường hợp lỗi (Rollback / Compensating Transaction)**: Nếu `UserService` từ chối (người dùng vi phạm nội quy/hết hạn thẻ), Saga sẽ gửi lệnh đền bù tới `BookService` để khôi phục số lượng sách ban đầu (+1) và hủy yêu cầu mượn.
+## 🚀 Hướng Dẫn Chạy Dự Án
 
----
+### Yêu Cầu Hệ Thống
+- Java 17+, Maven, Docker & Docker Compose
 
-## 🚀 Hướng Dẫn Cài Đặt & Chạy Dự Án
-
-### 📋 Yêu cầu hệ thống
-*   Docker & Docker Desktop
-*   Java Development Kit (JDK) 17
-*   Maven 3.x
-*   Node.js (phiên bản 18 trở lên)
-
-### Bước 1: Khởi chạy các container cơ sở hạ tầng
-Chạy lệnh sau tại thư mục gốc chứa file `docker-compose.yml`:
+### Docker Compose
 ```bash
-docker-compose up -d axonserver redis zookeeper broker control-center mysql keycloak keycloak-db
+git clone <repo-url>
+cd <repo-dir>
+
+docker-compose -f docker-compose-provider.yml up -d   # infra
+docker-compose up -d                                # all services
 ```
-*Đảm bảo các cổng hệ thống như `8124`, `9092`, `3307`, `8180` không bị chiếm dụng trước khi chạy.*
 
-### Bước 2: Biên dịch và chạy Backend Services
-1. **Biên dịch mã nguồn Java**:
-   ```bash
-   mvn clean install -DskipTests
-   ```
-2. **Khởi chạy toàn bộ services Spring Boot**:
-   ```bash
-   docker-compose up -d --build
-   ```
+### Local Development
+```bash
+# start infra
+docker-compose -f docker-compose-provider.yml up -d
 
-### Bước 3: Khởi chạy Giao diện Frontend
-1. Truy cập thư mục frontend:
-   ```bash
-   cd frontend
-   ```
-2. Cài đặt các thư viện cần thiết:
-   ```bash
-   npm install
-   ```
-3. Chạy ứng dụng ở chế độ nhà phát triển:
-   ```bash
-   npm run dev
-   ```
-Giao diện quản trị sẽ sẵn sàng tại địa chỉ: `http://localhost:5173`.
+# start services one by one
+cd discoverserver && mvn spring-boot:run
+cd ../bookservice && mvn spring-boot:run
+# … repeat for other services
+```
+
+## 🔗 Endpoints & Ports
+| Service | Port | Description |
+|---------|------|-------------|
+| API Gateway | 8080 | Entry point |
+| Eureka | 8761 | Service registry |
+| Book Service | 9001 | CRUD sách |
+| Employee Service | 9002 | CRUD nhân viên |
+| Borrowing Service | 9003 | Quản lý mượn sách |
+| User Service | 9005 | Auth |
+| Notification Service | 9003 | Email |
+| Axon Server | 8124 | Event store |
+| Redis | 6379 | Rate limiting |
+| Kafka | 9092 | Event streaming |
+
+## 📚 API Docs
+- Swagger UI tại `http://localhost:<gateway-port>/swagger-ui.html`
+- OpenAPI JSON tại `http://localhost:<gateway-port>/v3/api-docs`
+
+## 🔐 Security
+- Keycloak realm: `<REALM_NAME>`
+- JWT validation via Spring Security OAuth2 Resource Server
+- Rate limiting: Redis (10 req/s, burst 20)
+
+## 🎨 Patterns Used
+- **CQRS** – tách command và query
+- **Event Sourcing** – lưu lịch sử events
+- **Saga** – quản lý transaction phân tán
+- **API Gateway** – single entry point
+- **Service Discovery** – Eureka
+
+## 📊 Database Schema (example)
+```sql
+-- Book
+CREATE TABLE book (id VARCHAR PRIMARY KEY, name VARCHAR, author VARCHAR, is_ready BOOLEAN);
+-- Employee
+CREATE TABLE employee (id VARCHAR PRIMARY KEY, first_name VARCHAR, last_name VARCHAR, is_disciplined BOOLEAN);
+-- Borrowing
+CREATE TABLE borrowing (id VARCHAR PRIMARY KEY, book_id VARCHAR, employee_id VARCHAR, borrowing_date DATE, return_date DATE);
+```
+
+## 🧪 Testing
+- Import `KeyCloak.postman_collection.json` into Postman
+- Use H2 console (`/h2-console`) for in‑memory DB inspection
+
+## 🐳 Docker & K8s
+- Each microservice has a `Dockerfile`
+- Kubernetes manifests in `k8s/` directory
+
+## 📝 Logging & Monitoring
+- **Slf4j + Logback**
+- **Axon Dashboard**, **Kafka Control Center**, **Eureka Dashboard**
+
+## 🤝 Contributing
+Fork, tạo branch, PR. Kiểm tra CI trước khi merge.
+
+## 📄 License
+Add your license here.
+
+## 👨‍💻 Author
+<YOUR_NAME>
+
+---
+
+*Template này dùng làm khởi đầu cho bất kỳ dự án microservice dựa trên Event Sourcing. Thay `<PLACEHOLDERS>` bằng thông tin dự án thực tế.*
